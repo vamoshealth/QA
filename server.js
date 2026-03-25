@@ -1,6 +1,69 @@
 const http = require("http");
 const https = require("https");
 
+// ─── DB SETUP ────────────────────────────────────────────────────────────────
+let pgClient = null;
+
+function getDbClient() {
+  if (pgClient) return Promise.resolve(pgClient);
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) return Promise.resolve(null);
+  try {
+    const { Client } = require("pg");
+    const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    return client.connect().then(() => {
+      pgClient = client;
+      return client.query(`
+        CREATE TABLE IF NOT EXISTS qa_results (
+          id SERIAL PRIMARY KEY,
+          rep_name TEXT,
+          call_date TEXT,
+          verdict TEXT,
+          overall_score INTEGER,
+          result_json TEXT,
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `).then(() => client);
+    });
+  } catch (e) {
+    return Promise.resolve(null);
+  }
+}
+
+function saveResult(data) {
+  return getDbClient().then(client => {
+    if (!client) return;
+    const score = overallScore(data);
+    return client.query(
+      "INSERT INTO qa_results (rep_name, call_date, verdict, overall_score, result_json) VALUES ($1,$2,$3,$4,$5)",
+      [data.repName || "Unknown", data.date || "", data.verdict || "", score, JSON.stringify(data)]
+    );
+  }).catch(() => {});
+}
+
+function getHistory(filter) {
+  return getDbClient().then(client => {
+    if (!client) return [];
+    let q = "SELECT id, rep_name, call_date, verdict, overall_score, result_json, created_at FROM qa_results";
+    const params = [];
+    if (filter) { q += " WHERE LOWER(rep_name) LIKE $1"; params.push("%" + filter.toLowerCase() + "%"); }
+    q += " ORDER BY created_at DESC LIMIT 200";
+    return client.query(q, params).then(r => r.rows);
+  }).catch(() => []);
+}
+
+function overallScore(r) {
+  if (!r || !r.categories) return 0;
+  const mainCats = ["greeting","discovery","presentation","objections","closing","rapport"];
+  let p = 0, t = 0;
+  mainCats.forEach(cat => {
+    const scores = r.categories[cat]?.scores || [];
+    scores.forEach(s => { if (s === "pass") { p++; t++; } else if (s === "fail") t++; });
+  });
+  return t > 0 ? Math.round(p / t * 100) : 0;
+}
+
+// ─── SYSTEM PROMPT ───────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are an elite sales performance coach for Vamos Health, a private medical group in Utah and Arizona. You analyze real sales calls and deliver sharp, structured coaching grounded in Vamos's actual sales system and real sales data.
 
 WHAT VAMOS IS: NOT insurance. NOT just a clinic. A financial + healthcare access solution for the Hispanic community. No SSN or immigration status required. Bilingual (Spanish/English). Safe space for undocumented individuals.
@@ -143,7 +206,9 @@ JSON structure:
   }
 }`;
 
-const HTML = `<!DOCTYPE html>
+// ─── HTML ─────────────────────────────────────────────────────────────────────
+function buildHTML(appPassword) {
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
@@ -164,31 +229,65 @@ const HTML = `<!DOCTYPE html>
   </style>
 </head>
 <body>
-<div id="app" style="max-width:680px;margin:0 auto;padding:16px 12px;min-height:100vh"></div>
+<div id="lock" style="position:fixed;inset:0;background:#f9fafb;display:flex;align-items:center;justify-content:center;z-index:999">
+  <div style="background:#fff;border-radius:16px;padding:36px 32px;border:1px solid #e5e7eb;width:100%;max-width:340px;text-align:center">
+    <div style="width:48px;height:48px;background:#7F77DD;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#fff;font-weight:800;font-size:20px">V</div>
+    <div style="font-weight:800;font-size:18px;margin-bottom:4px">Vamos Health QA</div>
+    <div style="font-size:12px;color:#9ca3af;margin-bottom:24px">Ingresa la contraseña del equipo</div>
+    <input id="pw" type="password" placeholder="Contraseña..." style="margin-bottom:12px;text-align:center"/>
+    <button onclick="tryLogin()" style="width:100%;padding:10px 0;background:#7F77DD;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700">Entrar</button>
+    <div id="pw-err" style="color:#EF4444;font-size:12px;margin-top:8px;display:none">Contraseña incorrecta</div>
+  </div>
+</div>
+<div id="app" style="max-width:680px;margin:0 auto;padding:16px 12px;min-height:100vh;display:none"></div>
 <script>
+const CORRECT_PW = ${JSON.stringify(appPassword)};
 const BRAND="#7F77DD";
+
+document.getElementById("pw").addEventListener("keydown", e => { if(e.key==="Enter") tryLogin(); });
+
+function tryLogin() {
+  const val = document.getElementById("pw").value;
+  if(val === CORRECT_PW) {
+    document.getElementById("lock").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    render();
+  } else {
+    document.getElementById("pw-err").style.display = "block";
+  }
+}
+
+// Auto-login if password was previously saved
+(function() {
+  const saved = sessionStorage.getItem("vamos_auth");
+  if(saved === CORRECT_PW) {
+    document.getElementById("lock").style.display = "none";
+    document.getElementById("app").style.display = "block";
+  }
+})();
+
 const CATS=[
   {id:"greeting",label:"Saludo",label_en:"Greeting",color:"#5DCAA5",bg:"#E1F5EE",tc:"#085041",
    es:["Se presentó con nombre completo y mencionó Vamos Health","Estableció el propósito de la llamada en los primeros 20 segundos","Preguntó el nombre del prospecto y lo usó naturalmente","Tono cálido, profesional y seguro desde el inicio"],
    en:["Introduced with full name and mentioned Vamos Health","Established purpose of the call within the first 20 seconds","Asked prospect's name and used it naturally","Warm, professional, confident tone from the start"]},
   {id:"discovery",label:"Descubrimiento",label_en:"Discovery",color:"#7F77DD",bg:"#EEEDFE",tc:"#3C3489",
-   es:["Preguntó sobre condiciones de salud (hipertensión, diabetes, colesterol)","Preguntó sobre estatus de seguro médico — pivote crítico","Exploró situación familiar (cónyuge, hijos) — pass si exploró, n/a si no se mencionó, nunca fail","Identificó el dolor INMEDIATO antes de presentar cualquier solución","Escucha activa — parafraseó o confirmó lo que escuchó","Preguntas basadas en respuestas del prospecto, no en un guión rígido"],
-   en:["Asked about health conditions (hypertension, diabetes, cholesterol)","Asked about insurance status — critical pitch pivot","Explored family situation — pass if explored, n/a if not mentioned, never fail","Identified IMMEDIATE pain before presenting anything","Active listening — paraphrased or confirmed what was heard","Follow-up questions based on prospect's answers, not a rigid script"]},
+   es:["Preguntó sobre condiciones de salud (hipertensión, diabetes, colesterol)","Preguntó sobre estatus de seguro médico — pivote crítico","Exploró situación familiar — pass si exploró, n/a si no se mencionó, nunca fail","Identificó el dolor INMEDIATO antes de presentar","Escucha activa — parafraseó o confirmó lo que escuchó","Preguntas basadas en respuestas del prospecto, no en guión"],
+   en:["Asked about health conditions (hypertension, diabetes, cholesterol)","Asked about insurance status — critical pitch pivot","Explored family situation — pass if explored, n/a if not mentioned, never fail","Identified IMMEDIATE pain before presenting anything","Active listening — paraphrased or confirmed what was heard","Follow-up questions based on prospect's answers, not a script"]},
   {id:"presentation",label:"Presentación",label_en:"Presentation",color:"#D4537E",bg:"#FBEAF0",tc:"#72243E",
-   es:["Presentó DESPUÉS de descubrir el dolor — no lanzó el pitch sin entender primero","Tradujo beneficios a ahorros concretos en dólares ('Labs afuera = $200-$400, aquí incluidos')","Personalizó la solución a las necesidades específicas de este prospecto","Lenguaje simple y claro — sin jerga ni sobrecarga de información","Diálogo activo — hizo preguntas de verificación, no un monólogo unilateral"],
-   en:["Presented AFTER discovering pain — did not pitch without understanding prospect first","Translated benefits into specific dollar savings ('Labs outside = $200-$400, here included')","Tailored solution to this prospect's specific needs","Simple clear language — no jargon, no info overload","Active dialogue — check-in questions, not a one-sided monologue"]},
+   es:["Presentó DESPUÉS de descubrir el dolor","Tradujo beneficios a ahorros concretos en dólares","Personalizó la solución a las necesidades específicas","Lenguaje simple y claro — sin jerga","Diálogo activo — no un monólogo"],
+   en:["Presented AFTER discovering pain","Translated benefits into specific dollar savings","Tailored solution to prospect's specific needs","Simple clear language — no jargon","Active dialogue — not a monologue"]},
   {id:"objections",label:"Objeciones",label_en:"Objections",color:"#D85A30",bg:"#FAECE7",tc:"#712B13",
-   es:["Recibió objeciones con calma — usó 'Entiendo', 'Tiene sentido', 'Eso es muy común'","Clarificó la objeción con una pregunta antes de responder","Respondió al precio con valor vs costos externos — NO planes de pago (no existen en Vamos)","Usó herramientas en orden: valor → urgencia → referido → descuento familiar → exención inscripción (último recurso)","Confirmó que la objeción quedó resuelta antes de continuar"],
-   en:["Received objections calmly — used 'Entiendo', 'Tiene sentido', 'Eso es muy común'","Clarified objection with a question before responding","Addressed price with value vs outside costs — NOT payment plans (don't exist at Vamos)","Used approved tools in order: value → urgency → referral bonus → family discount → fee waiver (last resort)","Confirmed objection was resolved before moving on"]},
+   es:["Recibió objeciones con calma — 'Entiendo', 'Tiene sentido'","Clarificó la objeción antes de responder","Respondió al precio con valor — NO planes de pago","Usó herramientas en orden: valor → urgencia → referido → descuento → exención","Confirmó resolución antes de continuar"],
+   en:["Received objections calmly — 'Entiendo', 'Tiene sentido'","Clarified objection before responding","Addressed price with value — NOT payment plans","Used approved tools in order","Confirmed objection resolved before moving on"]},
   {id:"closing",label:"Cierre",label_en:"Closing",color:"#639922",bg:"#EAF3DE",tc:"#27500A",
-   es:["Pidió la venta directamente y con seguridad","Intentó cerrar por teléfono el mismo día — incluso cuando dijeron que necesitaban pensar","Usó técnica adecuada: asuntivo, alternativa o urgencia","Ante dudas, profundizó con preguntas en vez de rendirse","Aseguró próximo paso concreto con fecha y hora — o cerró. 'Hablamos pronto' = falla."],
-   en:["Asked for the sale directly and confidently","Attempted same-day phone close — even when prospect needed to think","Used proper technique: assumptive, alternative, or urgency-based","When hesitation arose, probed with questions instead of giving up","Secured concrete next step with exact date/time — or closed. 'Talk soon' = fail."]},
+   es:["Pidió la venta directamente","Intentó cerrar el mismo día por teléfono","Usó técnica: asuntivo, alternativa o urgencia","Ante dudas profundizó con preguntas","Aseguró próximo paso concreto — 'Hablamos pronto' = falla"],
+   en:["Asked for the sale directly","Attempted same-day phone close","Used proper technique: assumptive, alternative, or urgency","Probed with questions when hesitation arose","Secured concrete next step — 'Talk soon' = fail"]},
   {id:"rapport",label:"Rapport (Toda la llamada)",label_en:"Rapport (Entire call)",color:"#378ADD",bg:"#E6F1FB",tc:"#0C447C",
-   es:["Tono empático y humano de principio a fin — no solo en el saludo","El prospecto se sintió escuchado y valorado","El prospecto habló MÁS que el rep","Generó confianza con honestidad — sin falsas promesas ni presión","Energía y calidez consistentes incluso ante objeciones o silencios"],
-   en:["Empathetic human tone from start to finish — not just greeting","Prospect felt heard and valued","Prospect talked MORE than the rep","Trust built through honesty — no false promises or pressure","Energy and warmth consistent even through objections or silence"]},
+   es:["Tono empático de principio a fin","El prospecto se sintió escuchado y valorado","El prospecto habló MÁS que el rep","Confianza con honestidad — sin falsas promesas","Energía consistente incluso ante objeciones"],
+   en:["Empathetic tone from start to finish","Prospect felt heard and valued","Prospect talked MORE than the rep","Trust through honesty — no false promises","Energy consistent even through objections"]},
   {id:"opportunities",label:"Oportunidades Perdidas",label_en:"Missed Opportunities",color:"#888780",bg:"#F1EFE8",tc:"#2C2C2A",
-   es:["Señal de compra ignorada — interés no capitalizado","Oportunidad familiar perdida — cónyuge o hijos mencionados pero no se exploró plan familiar, descuentos o chequeos escolares","Dolor mencionado de pasada sin profundizar","Bono de $50 por referido no mencionado al cierre","Beneficios de Vamos Juntos no usados cuando el prospecto dudaba","Exención de inscripción no intentada cuando la llamada se cayó por el costo de inscripción"],
-   en:["Buying signal ignored — prospect interest not capitalized","Family opportunity missed — spouse or kids mentioned but family plan/discounts/school physicals not explored","Pain mentioned in passing but not explored","$50 referral bonus not mentioned at close","Vamos Juntos benefits not used when prospect was hesitant","Enrollment fee waiver not attempted when call died over enrollment fee"]}
+   es:["Señal de compra ignorada","Oportunidad familiar perdida","Dolor mencionado sin profundizar","Bono de $50 por referido no mencionado","Vamos Juntos no usado cuando dudaba","Exención de inscripción no intentada"],
+   en:["Buying signal ignored","Family opportunity missed","Pain mentioned but not explored","$50 referral bonus not mentioned","Vamos Juntos not used when hesitant","Enrollment fee waiver not attempted"]}
 ];
 
 const VM={
@@ -196,12 +295,8 @@ const VM={
   "needs coaching":{bg:"#fef3c7",text:"#92400e",border:"#d97706",es:"Necesita Coaching",en:"Needs Coaching"},
   "critical gaps":{bg:"#fde8e8",text:"#9b1c1c",border:"#dc2626",es:"Brechas Críticas",en:"Critical Gaps"}
 };
-const LS="vamos_v7";
 
-let state={tab:"analyze",tx:"",rep:"",date:new Date().toISOString().slice(0,10),loading:false,result:null,err:"",hist:[],viewing:null,filter:"",lang:"both"};
-try{const d=localStorage.getItem(LS);if(d)state.hist=JSON.parse(d);}catch(e){}
-
-function saveHist(){try{localStorage.setItem(LS,JSON.stringify(state.hist));}catch(e){}}
+let state={tab:"analyze",tx:"",rep:"",date:new Date().toISOString().slice(0,10),loading:false,result:null,err:"",hist:[],viewing:null,filter:"",lang:"both",histLoading:false};
 
 function calcPct(catId,r){
   const s=r?.categories?.[catId]?.scores||[];
@@ -211,8 +306,8 @@ function calcPct(catId,r){
 function overallPct(r){
   if(!r?.categories)return 0;
   let p=0,t=0;
-  CATS.filter(c=>c.id!=="opportunities").forEach(c=>{
-    (r.categories[c.id]?.scores||[]).forEach(s=>{if(s==="pass"){p++;t++;}else if(s==="fail")t++;});
+  ["greeting","discovery","presentation","objections","closing","rapport"].forEach(cat=>{
+    (r.categories[cat]?.scores||[]).forEach(s=>{if(s==="pass"){p++;t++;}else if(s==="fail")t++;});
   });
   return t>0?Math.round(p/t*100):0;
 }
@@ -234,41 +329,52 @@ function render(){
   app.innerHTML="";
   const hdr=el("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}});
   const hLeft=el("div",{style:{display:"flex",alignItems:"center",gap:"10px"}});
-  const logo=el("div",{style:{width:"36px",height:"36px",background:BRAND,borderRadius:"9px",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:"800",fontSize:"16px"}},"V");
-  const hTitles=el("div");
-  hTitles.appendChild(el("div",{style:{fontWeight:"800",fontSize:"15px"}},"Vamos Health QA"));
-  hTitles.appendChild(el("div",{style:{fontSize:"11px",color:"#9ca3af"}},"Sales Call Analyzer"));
-  hLeft.appendChild(logo);hLeft.appendChild(hTitles);hdr.appendChild(hLeft);
-  const langSel=el("select",{style:{width:"auto",fontSize:"11px",padding:"4px 8px",borderRadius:"6px",border:"1px solid #e5e7eb"},onChange:e=>{state.lang=e.target.value;render();}});
-  [["both","ES + EN"],["es","Solo Español"],["en","English only"]].forEach(([v,t])=>{const o=el("option",{value:v},t);if(v===state.lang)o.selected=true;langSel.appendChild(o);});
-  hdr.appendChild(langSel);app.appendChild(hdr);
-  const tabBar=el("div",{style:{display:"flex",gap:"4px",marginBottom:"16px",background:"#ececec",borderRadius:"9px",padding:"4px"}});
-  const tabs=[["analyze","Analizar"],["history","Historial"],...(state.viewing?[["view","Reporte"]]:[])] ;
-  tabs.forEach(([id,label])=>{const b=el("button",{className:"tab"+(state.tab===id?" active":""),onClick:()=>{state.tab=id;render();}},label);tabBar.appendChild(b);});
-  app.appendChild(tabBar);
+  hLeft.appendChild(el("div",{style:{width:"36px",height:"36px",background:BRAND,borderRadius:"9px",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:"800",fontSize:"16px"}},"V"));
+  const ht=el("div");
+  ht.appendChild(el("div",{style:{fontWeight:"800",fontSize:"15px"}},"Vamos Health QA"));
+  ht.appendChild(el("div",{style:{fontSize:"11px",color:"#9ca3af"}},"Sales Call Analyzer"));
+  hLeft.appendChild(ht);hdr.appendChild(hLeft);
+  const ls=el("select",{style:{width:"auto",fontSize:"11px",padding:"4px 8px",borderRadius:"6px",border:"1px solid #e5e7eb"},onChange:e=>{state.lang=e.target.value;render();}});
+  [["both","ES + EN"],["es","Solo Español"],["en","English only"]].forEach(([v,t])=>{const o=el("option",{value:v},t);if(v===state.lang)o.selected=true;ls.appendChild(o);});
+  hdr.appendChild(ls);app.appendChild(hdr);
+  const tb=el("div",{style:{display:"flex",gap:"4px",marginBottom:"16px",background:"#ececec",borderRadius:"9px",padding:"4px"}});
+  [["analyze","Analizar"],["history","Historial"],["trends","Tendencias"],...(state.viewing?[["view","Reporte"]]:[])]
+    .forEach(([id,label])=>{
+      const b=el("button",{className:"tab"+(state.tab===id?" active":""),onClick:()=>{
+        state.tab=id;
+        if(id==="history"||id==="trends")loadHistory();
+        render();
+      }},label);
+      tb.appendChild(b);
+    });
+  app.appendChild(tb);
   if(state.tab==="analyze")renderAnalyze(app);
   else if(state.tab==="history")renderHistory(app);
+  else if(state.tab==="trends")renderTrends(app);
   else if(state.tab==="view"&&state.viewing)renderView(app);
+}
+
+function loadHistory(){
+  if(state.histLoading)return;
+  state.histLoading=true;
+  fetch("/api/history?filter="+encodeURIComponent(state.filter))
+    .then(r=>r.json()).then(rows=>{
+      state.hist=rows.map(r=>({...JSON.parse(r.result_json),_dbid:r.id,_created:r.created_at}));
+      state.histLoading=false;render();
+    }).catch(()=>{state.histLoading=false;});
 }
 
 function renderAnalyze(app){
   const wrap=el("div",{style:{background:"#fff",borderRadius:"12px",padding:"16px",border:"1px solid #e5e7eb"}});
   const grid=el("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"12px"}});
-  const repWrap=el("div");
-  repWrap.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Nombre del Rep"));
-  const repIn=el("input",{type:"text",placeholder:"Ej. Maria Garcia",value:state.rep,onInput:e=>state.rep=e.target.value});
-  repWrap.appendChild(repIn);
-  const dateWrap=el("div");
-  dateWrap.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Fecha"));
-  const dateIn=el("input",{type:"date",value:state.date,onInput:e=>state.date=e.target.value});
-  dateWrap.appendChild(dateIn);
-  grid.appendChild(repWrap);grid.appendChild(dateWrap);
-  wrap.appendChild(grid);
+  const rw=el("div");rw.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Nombre del Rep"));
+  rw.appendChild(el("input",{type:"text",placeholder:"Ej. Maria Garcia",value:state.rep,onInput:e=>state.rep=e.target.value}));
+  const dw=el("div");dw.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Fecha"));
+  dw.appendChild(el("input",{type:"date",value:state.date,onInput:e=>state.date=e.target.value}));
+  grid.appendChild(rw);grid.appendChild(dw);wrap.appendChild(grid);
   wrap.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Transcripción de la llamada"));
-  const ta=el("textarea",{placeholder:"Pega la transcripción aquí (español o inglés)...",style:{width:"100%",minHeight:"180px",resize:"vertical",borderRadius:"8px",border:"1px solid #e5e7eb",padding:"10px 12px",fontSize:"13px",lineHeight:"1.6",marginBottom:"12px",outline:"none",fontFamily:"inherit"},onInput:e=>state.tx=e.target.value},state.tx);
-  wrap.appendChild(ta);
-  const btn=el("button",{style:{width:"100%",padding:"11px 0",background:state.loading||!state.tx.trim()?"#e5e7eb":BRAND,color:state.loading||!state.tx.trim()?"#9ca3af":"#fff",border:"none",borderRadius:"8px",fontSize:"14px",fontWeight:"700"},onClick:doAnalyze},state.loading?"⏳ Analizando…":"Analizar Llamada");
-  wrap.appendChild(btn);
+  wrap.appendChild(el("textarea",{placeholder:"Pega la transcripción aquí (español o inglés)...",style:{width:"100%",minHeight:"180px",resize:"vertical",borderRadius:"8px",border:"1px solid #e5e7eb",padding:"10px 12px",fontSize:"13px",lineHeight:"1.6",marginBottom:"12px",outline:"none",fontFamily:"inherit"},onInput:e=>state.tx=e.target.value},state.tx));
+  wrap.appendChild(el("button",{style:{width:"100%",padding:"11px 0",background:state.loading||!state.tx.trim()?"#e5e7eb":BRAND,color:state.loading||!state.tx.trim()?"#9ca3af":"#fff",border:"none",borderRadius:"8px",fontSize:"14px",fontWeight:"700"},onClick:doAnalyze},state.loading?"⏳ Analizando…":"Analizar Llamada"));
   if(state.err)wrap.appendChild(el("div",{style:{marginTop:"12px",background:"#FEE2E2",border:"1px solid #EF4444",borderRadius:"8px",padding:"10px 14px",fontSize:"12px",color:"#991B1B"}},"⚠ "+state.err));
   if(state.result&&!state.loading){const rd=el("div",{style:{marginTop:"18px"}});renderResult(rd,state.result);wrap.appendChild(rd);}
   app.appendChild(wrap);
@@ -277,32 +383,28 @@ function renderAnalyze(app){
 function doAnalyze(){
   if(!state.tx.trim()||state.loading)return;
   state.loading=true;state.err="";state.result=null;render();
-  fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({transcript:state.tx,repName:state.rep})})
+  fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({transcript:state.tx,repName:state.rep,date:state.date})})
     .then(r=>r.json().then(d=>({ok:r.ok,d})))
     .then(({ok,d})=>{
       if(!ok)throw new Error(d.error||"Server error");
-      const entry=Object.assign({},d,{repName:state.rep||d.repName||"Unknown",date:state.date,_id:Date.now(),transcript:state.tx});
-      state.result=entry;
-      state.hist=[entry,...state.hist].slice(0,100);
-      saveHist();
+      state.result={...d,repName:state.rep||d.repName||"Unknown",date:state.date,_id:Date.now()};
     })
     .catch(e=>state.err=e.message)
     .finally(()=>{state.loading=false;render();});
 }
 
 function renderResult(wrap,r){
-  const sc=overallPct(r);
-  const vm=VM[r.verdict]||VM["needs coaching"];
+  const sc=overallPct(r),vm=VM[r.verdict]||VM["needs coaching"];
   const vh=el("div",{style:{background:vm.bg,border:"1px solid "+vm.border,borderRadius:"12px",padding:"14px 18px",marginBottom:"14px",display:"flex",justifyContent:"space-between",alignItems:"center"}});
-  const vLeft=el("div");
-  if(r.repName)vLeft.appendChild(el("div",{style:{fontSize:"17px",fontWeight:"800",color:vm.text}},r.repName));
-  vLeft.appendChild(el("div",{style:{fontSize:"11px",color:vm.text,opacity:".7"}},r.date||""));
-  vLeft.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"600",color:vm.text,marginTop:"3px"}},vm.es+" / "+vm.en));
-  vh.appendChild(vLeft);
-  const vRight=el("div",{style:{textAlign:"center",background:"rgba(255,255,255,.5)",borderRadius:"10px",padding:"10px 16px"}});
-  vRight.appendChild(el("div",{style:{fontSize:"32px",fontWeight:"800",color:vm.text}},sc+"%"));
-  vRight.appendChild(el("div",{style:{fontSize:"10px",color:vm.text}},"Overall"));
-  vh.appendChild(vRight);wrap.appendChild(vh);
+  const vl=el("div");
+  if(r.repName)vl.appendChild(el("div",{style:{fontSize:"17px",fontWeight:"800",color:vm.text}},r.repName));
+  vl.appendChild(el("div",{style:{fontSize:"11px",color:vm.text,opacity:".7"}},r.date||""));
+  vl.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"600",color:vm.text,marginTop:"3px"}},vm.es+" / "+vm.en));
+  vh.appendChild(vl);
+  const vr=el("div",{style:{textAlign:"center",background:"rgba(255,255,255,.5)",borderRadius:"10px",padding:"10px 16px"}});
+  vr.appendChild(el("div",{style:{fontSize:"32px",fontWeight:"800",color:vm.text}},sc+"%"));
+  vr.appendChild(el("div",{style:{fontSize:"10px",color:vm.text}},"Overall"));
+  vh.appendChild(vr);wrap.appendChild(vh);
   if(r.summary_es||r.summary_en){
     const sb=el("div",{style:{background:"#f9fafb",borderLeft:"3px solid "+BRAND,padding:"10px 14px",borderRadius:"0 8px 8px 0",marginBottom:"14px",fontSize:"12px",lineHeight:"1.7",color:"#374151"}});
     if((state.lang==="both"||state.lang==="es")&&r.summary_es)sb.appendChild(el("div",null,r.summary_es));
@@ -319,10 +421,8 @@ function renderResult(wrap,r){
   });
   wrap.appendChild(grid);
   CATS.forEach(c=>{
-    const catData=r.categories?.[c.id];
-    if(!catData)return;
-    const scores=catData.scores||[];
-    if(!scores.some(s=>s!=="na"))return;
+    const cd=r.categories?.[c.id];if(!cd)return;
+    const scores=cd.scores||[];if(!scores.some(s=>s!=="na"))return;
     const pct=calcPct(c.id,r);
     const box=el("div",{style:{border:"1px solid "+c.color,borderRadius:"10px",marginBottom:"10px",overflow:"hidden"}});
     const hd=el("div",{style:{background:c.bg,padding:"9px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}});
@@ -332,17 +432,16 @@ function renderResult(wrap,r){
     const body=el("div",{style:{padding:"6px 14px 10px",background:"#fff"}});
     scores.forEach((s,i)=>{
       const row=el("div",{style:{padding:"6px 0",borderBottom:i<scores.length-1?"1px solid #f3f4f6":"none"}});
-      const txtWrap=el("div",{style:{fontSize:"12px",color:"#374151",flex:"1",lineHeight:"1.5",display:"flex",flexDirection:"column",gap:"2px"}});
-      if(state.lang==="both"||state.lang==="es")txtWrap.appendChild(el("div",null,c.es[i]||""));
-      if(state.lang==="both")txtWrap.appendChild(el("div",{style:{fontSize:"10px",color:"#9ca3af"}},c.en[i]||""));
-      if(state.lang==="en")txtWrap.appendChild(el("div",null,c.en[i]||""));
-      const rowInner=el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"8px"}});
-      rowInner.appendChild(txtWrap);
-      const badge=el("span",{className:"badge badge-"+(s==="pass"?"pass":s==="fail"?"fail":"na")},s==="pass"?"✓ Pass":s==="fail"?"✗ Fail":"— N/A");
-      rowInner.appendChild(badge);
-      row.appendChild(rowInner);
+      const tw=el("div",{style:{fontSize:"12px",color:"#374151",flex:"1",lineHeight:"1.5",display:"flex",flexDirection:"column",gap:"2px"}});
+      if(state.lang==="both"||state.lang==="es")tw.appendChild(el("div",null,c.es[i]||""));
+      if(state.lang==="both")tw.appendChild(el("div",{style:{fontSize:"10px",color:"#9ca3af"}},c.en[i]||""));
+      if(state.lang==="en")tw.appendChild(el("div",null,c.en[i]||""));
+      const ri=el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"8px"}});
+      ri.appendChild(tw);
+      ri.appendChild(el("span",{className:"badge badge-"+(s==="pass"?"pass":s==="fail"?"fail":"na")},s==="pass"?"✓ Pass":s==="fail"?"✗ Fail":"— N/A"));
+      row.appendChild(ri);
       if(s==="fail"){
-        const ne=catData.notes_es?.[i],nen=catData.notes_en?.[i];
+        const ne=cd.notes_es?.[i],nen=cd.notes_en?.[i];
         if(ne||nen){
           const note=el("div",{style:{marginTop:"5px",background:"#FEF3C7",borderLeft:"3px solid #F59E0B",padding:"5px 9px",borderRadius:"0 5px 5px 0",fontSize:"11px",color:"#92400E",lineHeight:"1.6"}});
           if((state.lang==="both"||state.lang==="es")&&ne)note.appendChild(el("div",null,"💬 "+ne));
@@ -365,11 +464,14 @@ function renderResult(wrap,r){
 }
 
 function renderHistory(app){
-  const fi=el("input",{type:"text",placeholder:"Filtrar por nombre del rep…",value:state.filter,style:{marginBottom:"12px"},onInput:e=>{state.filter=e.target.value;render();}});
-  app.appendChild(fi);
-  const filtered=state.hist.filter(h=>!state.filter||h.repName?.toLowerCase().includes(state.filter.toLowerCase()));
-  if(!filtered.length){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px",fontSize:"13px"}},"No hay llamadas aún."));return;}
-  filtered.forEach(h=>{
+  const topRow=el("div",{style:{display:"flex",gap:"8px",marginBottom:"12px"}});
+  const fi=el("input",{type:"text",placeholder:"Filtrar por nombre del rep…",value:state.filter,style:{flex:"1"},onInput:e=>{state.filter=e.target.value;loadHistory();}});
+  topRow.appendChild(fi);
+  topRow.appendChild(el("button",{style:{padding:"8px 14px",background:"#fff",border:"1px solid #e5e7eb",borderRadius:"7px",fontSize:"12px",fontWeight:"600",color:"#374151",whiteSpace:"nowrap"},onClick:exportCSV},"⬇ CSV"));
+  app.appendChild(topRow);
+  if(state.histLoading){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px",fontSize:"13px"}},"Cargando…"));return;}
+  if(!state.hist.length){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px",fontSize:"13px"}},"No hay llamadas aún."));return;}
+  state.hist.forEach(h=>{
     const sc=overallPct(h),vm=VM[h.verdict]||VM["needs coaching"];
     const row=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"10px",padding:"12px 14px",marginBottom:"10px",display:"flex",justifyContent:"space-between",alignItems:"center"}});
     const left=el("div");
@@ -386,10 +488,90 @@ function renderHistory(app){
   });
 }
 
+function renderTrends(app){
+  if(state.histLoading){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px"}},"Cargando…"));return;}
+  if(!state.hist.length){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px",fontSize:"13px"}},"No hay llamadas aún."));return;}
+  app.appendChild(el("div",{style:{fontWeight:"800",fontSize:"15px",marginBottom:"16px"}},"Tendencias por Rep"));
+  const byRep={};
+  state.hist.forEach(h=>{const n=h.repName||"Unknown";if(!byRep[n])byRep[n]=[];byRep[n].push(h);});
+  Object.entries(byRep).forEach(([name,calls])=>{
+    const sorted=[...calls].sort((a,b)=>new Date(a.date)-new Date(b.date));
+    const scores=sorted.map(c=>overallPct(c));
+    const avg=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+    const trend=scores.length>1?scores[scores.length-1]-scores[0]:0;
+    const vm=VM[calls[0]?.verdict]||VM["needs coaching"];
+    const card=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"12px",padding:"14px 16px",marginBottom:"12px"}});
+    const rh=el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}});
+    const rl=el("div");
+    rl.appendChild(el("div",{style:{fontWeight:"700",fontSize:"14px"}},name));
+    rl.appendChild(el("div",{style:{fontSize:"11px",color:"#9ca3af"}},calls.length+" llamada"+(calls.length!==1?"s":"")));
+    rh.appendChild(rl);
+    const rr=el("div",{style:{display:"flex",gap:"10px",alignItems:"center"}});
+    const ab=el("div",{style:{textAlign:"center",background:vm.bg,border:"1px solid "+vm.border,borderRadius:"8px",padding:"5px 12px"}});
+    ab.appendChild(el("div",{style:{fontSize:"16px",fontWeight:"800",color:vm.text}},avg+"%"));
+    ab.appendChild(el("div",{style:{fontSize:"9px",color:vm.text}},"Promedio"));
+    rr.appendChild(ab);
+    if(scores.length>1){
+      const tc=trend>0?"#085041":trend<0?"#991B1B":"#6b7280";
+      const tbg=trend>0?"#E1F5EE":trend<0?"#FEE2E2":"#f3f4f6";
+      const te=el("div",{style:{textAlign:"center",background:tbg,borderRadius:"8px",padding:"5px 12px"}});
+      te.appendChild(el("div",{style:{fontSize:"16px",fontWeight:"800",color:tc}},(trend>0?"+":"")+trend+"%"));
+      te.appendChild(el("div",{style:{fontSize:"9px",color:tc}},"Tendencia"));
+      rr.appendChild(te);
+    }
+    rh.appendChild(rr);card.appendChild(rh);
+    if(scores.length>1){
+      const maxS=Math.max(...scores),minS=Math.min(...scores),range=maxS-minS||1;
+      const w=300,h=50,pad=4;
+      const pts=scores.map((s,i)=>{
+        const x=pad+(i/(scores.length-1))*(w-2*pad);
+        const y=pad+((maxS-s)/range)*(h-2*pad);
+        return x+","+y;
+      }).join(" ");
+      const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+      svg.setAttribute("viewBox","0 0 "+w+" "+h);
+      svg.setAttribute("style","width:100%;height:50px;");
+      const poly=document.createElementNS("http://www.w3.org/2000/svg","polyline");
+      poly.setAttribute("points",pts);poly.setAttribute("fill","none");
+      poly.setAttribute("stroke",BRAND);poly.setAttribute("stroke-width","2");
+      poly.setAttribute("stroke-linejoin","round");svg.appendChild(poly);
+      scores.forEach((s,i)=>{
+        const x=pad+(i/(scores.length-1))*(w-2*pad);
+        const y=pad+((maxS-s)/range)*(h-2*pad);
+        const circle=document.createElementNS("http://www.w3.org/2000/svg","circle");
+        circle.setAttribute("cx",x);circle.setAttribute("cy",y);
+        circle.setAttribute("r","3");circle.setAttribute("fill",BRAND);
+        svg.appendChild(circle);
+      });
+      card.appendChild(svg);
+      const dr=el("div",{style:{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#9ca3af",marginTop:"2px"}});
+      dr.appendChild(el("span",null,sorted[0].date||""));
+      dr.appendChild(el("span",null,sorted[sorted.length-1].date||""));
+      card.appendChild(dr);
+    }
+    app.appendChild(card);
+  });
+}
+
 function renderView(app){
   app.appendChild(el("button",{style:{fontSize:"12px",color:BRAND,background:"none",border:"none",cursor:"pointer",marginBottom:"14px",fontWeight:"600"},onClick:()=>{state.tab="history";render();}},"← Historial"));
   const wrap=el("div",{style:{background:"#fff",borderRadius:"12px",padding:"16px",border:"1px solid #e5e7eb"}});
   renderResult(wrap,state.viewing);app.appendChild(wrap);
+}
+
+function exportCSV(){
+  if(!state.hist.length)return;
+  const headers=["Rep","Fecha","Veredicto","Score General","Saludo","Descubrimiento","Presentación","Objeciones","Cierre","Rapport"];
+  const rows=state.hist.map(h=>[
+    h.repName||"",h.date||"",h.verdict||"",overallPct(h),
+    calcPct("greeting",h)??"",calcPct("discovery",h)??"",calcPct("presentation",h)??"",
+    calcPct("objections",h)??"",calcPct("closing",h)??"",calcPct("rapport",h)??""
+  ]);
+  const csv=[headers,...rows].map(r=>r.map(v=>'"'+(String(v).replace(/"/g,'""'))+'"').join(",")).join("\\n");
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+  a.download="VamosQA_Team_"+new Date().toISOString().slice(0,10)+".csv";
+  a.click();
 }
 
 function downloadReport(r){
@@ -398,38 +580,51 @@ function downloadReport(r){
     const cd=r.categories?.[c.id];if(!cd)return"";
     const items=(cd.scores||[]).map((s,i)=>{
       const badge=s==="pass"?'<span style="color:#085041;font-weight:700">✓ Pass</span>':s==="fail"?'<span style="color:#991B1B;font-weight:700">✗ Fail</span>':'<span style="color:#6b7280">— N/A</span>';
-      const note_es=cd.notes_es?.[i],note_en=cd.notes_en?.[i];
-      const noteHtml=s==="fail"&&(note_es||note_en)?'<div style="background:#FEF3C7;border-left:3px solid #F59E0B;padding:4px 8px;margin-top:3px;font-size:10px;color:#92400E;line-height:1.6">'+(note_es?"💬 "+note_es:"")+((note_es&&note_en)?"<br>":"")+(note_en?'<span style="color:#78350F">💬 '+note_en+"</span>":"")+"</div>":"";
+      const ne=cd.notes_es?.[i],nen=cd.notes_en?.[i];
+      const noteHtml=s==="fail"&&(ne||nen)?'<div style="background:#FEF3C7;border-left:3px solid #F59E0B;padding:4px 8px;margin-top:3px;font-size:10px;color:#92400E;line-height:1.6">'+(ne?"💬 "+ne:"")+((ne&&nen)?"<br>":"")+(nen?'<span style="color:#78350F">💬 '+nen+"</span>":"")+"</div>":"";
       return'<tr><td style="padding:5px 8px;font-size:11px;vertical-align:top">'+c.es[i]+'<br><span style="color:#9ca3af;font-size:10px">'+c.en[i]+"</span>"+noteHtml+"</td><td style='padding:5px 8px;text-align:center;vertical-align:top'>"+badge+"</td></tr>";
     }).join("");
     const pct=calcPct(c.id,r);
     return'<tr><td colspan="2" style="background:'+c.bg+';padding:8px 10px;font-weight:700;font-size:12px;color:'+c.tc+';border-top:2px solid '+c.color+'">'+c.label+" / "+c.label_en+(pct!==null?" — "+pct+"%":"")+"</td></tr>"+items;
   }).join("");
-  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QA Report — '+r.repName+'</title></head><body style="font-family:system-ui;max-width:740px;margin:0 auto;padding:30px;color:#111"><div style="display:flex;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #7F77DD"><div><div style="font-size:20px;font-weight:800;color:#7F77DD">Vamos Health QA</div><div style="font-size:14px;margin-top:4px">'+(r.repName||"")+'</div><div style="font-size:11px;color:#9ca3af">'+(r.date||"")+'</div></div><div style="background:'+vm.bg+';border:1px solid '+vm.border+';border-radius:10px;padding:12px 20px;text-align:center"><div style="font-size:32px;font-weight:800;color:'+vm.text+'">'+sc+'%</div><div style="font-size:11px;color:'+vm.text+'">'+vm.es+" / "+vm.en+'</div></div></div>'+(r.summary_es?'<div style="background:#f5f5f5;border-left:3px solid #7F77DD;padding:10px 14px;margin-bottom:20px;font-size:12px;line-height:1.7;color:#374151">'+r.summary_es+(r.summary_en?"<br><br><span style='color:#9ca3af'>"+r.summary_en+"</span>":"")+"</div>":"")+'<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'+rows+"</table>"+(r.coaching_es?'<div style="background:#EEEDF9;border:1px solid #7F77DD;border-radius:8px;padding:14px;font-size:12px;color:#3730A3;line-height:1.7"><strong>🎯 Coaching</strong><br><br>'+r.coaching_es+(r.coaching_en?"<br><br><em style='color:#4338CA'>"+r.coaching_en+"</em>":"")+"</div>":"")+'<div style="margin-top:28px;text-align:center;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:12px">Vamos Health QA · '+new Date().toLocaleDateString()+"</div></body></html>";
+  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QA Report</title></head><body style="font-family:system-ui;max-width:740px;margin:0 auto;padding:30px;color:#111"><div style="display:flex;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #7F77DD"><div><div style="font-size:20px;font-weight:800;color:#7F77DD">Vamos Health QA</div><div style="font-size:14px;margin-top:4px">'+(r.repName||"")+'</div><div style="font-size:11px;color:#9ca3af">'+(r.date||"")+'</div></div><div style="background:'+vm.bg+';border:1px solid '+vm.border+';border-radius:10px;padding:12px 20px;text-align:center"><div style="font-size:32px;font-weight:800;color:'+vm.text+'">'+sc+'%</div><div style="font-size:11px;color:'+vm.text+'">'+vm.es+" / "+vm.en+'</div></div></div>'+(r.summary_es?'<div style="background:#f5f5f5;border-left:3px solid #7F77DD;padding:10px 14px;margin-bottom:20px;font-size:12px;line-height:1.7;color:#374151">'+r.summary_es+(r.summary_en?"<br><br><span style='color:#9ca3af'>"+r.summary_en+"</span>":"")+"</div>":"")+'<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'+rows+"</table>"+(r.coaching_es?'<div style="background:#EEEDF9;border:1px solid #7F77DD;border-radius:8px;padding:14px;font-size:12px;color:#3730A3;line-height:1.7"><strong>🎯 Coaching</strong><br><br>'+r.coaching_es+(r.coaching_en?"<br><br><em style='color:#4338CA'>"+r.coaching_en+"</em>":"")+"</div>":"")+'<div style="margin-top:28px;text-align:center;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:12px">Vamos Health QA · '+new Date().toLocaleDateString()+"</div></body></html>";
   const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([html],{type:"text/html"}));
-  a.download="VamosQA_"+((r.repName||"Rep").replace(/\s+/g,"_"))+"_"+(r.date||"report")+".html";
+  a.download="VamosQA_"+((r.repName||"Rep").replace(/\\s+/g,"_"))+"_"+(r.date||"report")+".html";
   a.click();
 }
-
-render();
 </script>
 </body>
 </html>`;
+}
 
+// ─── SERVER ───────────────────────────────────────────────────────────────────
 const server = http.createServer((req, res) => {
-  if (req.method === "GET" && (req.url === "/" || req.url === "/index.html")) {
+  const url = req.url.split("?")[0];
+  const appPassword = process.env.QA_PASSWORD || "VamosQA2026";
+
+  if (req.method === "GET" && (url === "/" || url === "/index.html")) {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(HTML);
+    res.end(buildHTML(appPassword));
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/analyze") {
+  if (req.method === "GET" && url === "/api/history") {
+    const qs = new URLSearchParams(req.url.split("?")[1] || "");
+    const filter = qs.get("filter") || "";
+    getHistory(filter).then(rows => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(rows));
+    });
+    return;
+  }
+
+  if (req.method === "POST" && url === "/api/analyze") {
     let body = "";
-    req.on("data", chunk => body += chunk);
+    req.on("data", c => body += c);
     req.on("end", () => {
       try {
-        const { transcript, repName } = JSON.parse(body);
+        const { transcript, repName, date } = JSON.parse(body);
         const apiKey = process.env.ANTHROPIC_API_KEY;
         if (!apiKey) {
           res.writeHead(500, { "Content-Type": "application/json" });
@@ -443,9 +638,7 @@ const server = http.createServer((req, res) => {
           messages: [{ role: "user", content: (repName ? `Rep name: ${repName}\n\n` : "") + "Transcript:\n" + transcript }]
         });
         const options = {
-          hostname: "api.anthropic.com",
-          path: "/v1/messages",
-          method: "POST",
+          hostname: "api.anthropic.com", path: "/v1/messages", method: "POST",
           headers: {
             "Content-Type": "application/json",
             "anthropic-version": "2023-06-01",
@@ -455,7 +648,7 @@ const server = http.createServer((req, res) => {
         };
         const apiReq = https.request(options, apiRes => {
           let data = "";
-          apiRes.on("data", chunk => data += chunk);
+          apiRes.on("data", c => data += c);
           apiRes.on("end", () => {
             try {
               const parsed = JSON.parse(data);
@@ -467,6 +660,9 @@ const server = http.createServer((req, res) => {
               const text = (parsed.content || []).map(b => b.text || "").join("").trim();
               const clean = text.replace(/^```json\s*/, "").replace(/\s*```$/, "").trim();
               const result = JSON.parse(clean);
+              result.repName = repName || result.repName || "Unknown";
+              result.date = date || "";
+              saveResult(result);
               res.writeHead(200, { "Content-Type": "application/json" });
               res.end(JSON.stringify(result));
             } catch (e) {
@@ -489,9 +685,11 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  res.writeHead(404);
-  res.end("Not found");
+  res.writeHead(404); res.end("Not found");
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log("Vamos QA running on port " + PORT));
+server.listen(PORT, () => {
+  console.log("Vamos QA running on port " + PORT);
+  getDbClient().then(c => console.log(c ? "Database connected" : "No database — history disabled"));
+});
