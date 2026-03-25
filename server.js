@@ -46,14 +46,14 @@ SCORING: Evaluate each criterion as "pass", "fail", or "na". Be strict on Discov
 
 GREETING (4 criteria):
 1. Introduced with full name and mentioned Vamos Health clearly
-2. Established immediate value in first 10 seconds (free checkup, free BP/glucose screening, or clear hook)
+2. Established the purpose of the call clearly within the first 20 seconds (who they are, why they're calling, what Vamos offers) — does not require a hard sales hook, just clarity and direction
 3. Asked prospect's name and used it naturally throughout
 4. Warm, professional, confident tone from first seconds
 
 DISCOVERY (6 criteria):
 1. Asked about health conditions (hypertension, diabetes, cholesterol — highest-value profiles)
 2. Asked about insurance status (no insurance = Core pitch; has insurance = Vital/complement pitch)
-3. Explored family situation (spouse, kids) — unlocks discounts and school physical angle
+3. Explored family situation (spouse, kids) — THIS IS NOT A PASS/FAIL CRITERION. Score "na" if family was not mentioned in the call. Score "pass" if rep explored it. NEVER score "fail" for this criterion. If rep mentioned family discounts or school physicals, add a positive note in coaching recognizing it as a best practice.
 4. Identified IMMEDIATE pain before presenting anything
 5. Active listening — paraphrased or confirmed what prospect said
 6. Follow-up questions based on prospect's answers, not a rigid script
@@ -169,11 +169,11 @@ const HTML = `<!DOCTYPE html>
 const BRAND="#7F77DD";
 const CATS=[
   {id:"greeting",label:"Saludo",label_en:"Greeting",color:"#5DCAA5",bg:"#E1F5EE",tc:"#085041",
-   es:["Se presentó con nombre completo y mencionó Vamos Health","Estableció valor inmediato en los primeros 10 segundos","Preguntó el nombre del prospecto y lo usó naturalmente","Tono cálido, profesional y seguro desde el inicio"],
-   en:["Introduced with full name and mentioned Vamos Health","Established immediate value in first 10 seconds","Asked prospect's name and used it naturally","Warm, professional, confident tone from the start"]},
+   es:["Se presentó con nombre completo y mencionó Vamos Health","Estableció el propósito de la llamada en los primeros 20 segundos","Preguntó el nombre del prospecto y lo usó naturalmente","Tono cálido, profesional y seguro desde el inicio"],
+   en:["Introduced with full name and mentioned Vamos Health","Established purpose of the call within the first 20 seconds","Asked prospect's name and used it naturally","Warm, professional, confident tone from the start"]},
   {id:"discovery",label:"Descubrimiento",label_en:"Discovery",color:"#7F77DD",bg:"#EEEDFE",tc:"#3C3489",
-   es:["Preguntó sobre condiciones de salud (hipertensión, diabetes, colesterol)","Preguntó sobre estatus de seguro médico — pivote crítico","Exploró situación familiar (cónyuge, hijos) — descuentos y chequeos escolares","Identificó el dolor INMEDIATO antes de presentar cualquier solución","Escucha activa — parafraseó o confirmó lo que escuchó","Preguntas basadas en respuestas del prospecto, no en un guión rígido"],
-   en:["Asked about health conditions (hypertension, diabetes, cholesterol)","Asked about insurance status — critical pitch pivot","Explored family situation (spouse, kids) — unlocks discounts and school physicals","Identified IMMEDIATE pain before presenting anything","Active listening — paraphrased or confirmed what was heard","Follow-up questions based on prospect's answers, not a rigid script"]},
+   es:["Preguntó sobre condiciones de salud (hipertensión, diabetes, colesterol)","Preguntó sobre estatus de seguro médico — pivote crítico","Exploró situación familiar (cónyuge, hijos) — pass si exploró, n/a si no se mencionó, nunca fail","Identificó el dolor INMEDIATO antes de presentar cualquier solución","Escucha activa — parafraseó o confirmó lo que escuchó","Preguntas basadas en respuestas del prospecto, no en un guión rígido"],
+   en:["Asked about health conditions (hypertension, diabetes, cholesterol)","Asked about insurance status — critical pitch pivot","Explored family situation — pass if explored, n/a if not mentioned, never fail","Identified IMMEDIATE pain before presenting anything","Active listening — paraphrased or confirmed what was heard","Follow-up questions based on prospect's answers, not a rigid script"]},
   {id:"presentation",label:"Presentación",label_en:"Presentation",color:"#D4537E",bg:"#FBEAF0",tc:"#72243E",
    es:["Presentó DESPUÉS de descubrir el dolor — no lanzó el pitch sin entender primero","Tradujo beneficios a ahorros concretos en dólares ('Labs afuera = $200-$400, aquí incluidos')","Personalizó la solución a las necesidades específicas de este prospecto","Lenguaje simple y claro — sin jerga ni sobrecarga de información","Diálogo activo — hizo preguntas de verificación, no un monólogo unilateral"],
    en:["Presented AFTER discovering pain — did not pitch without understanding prospect first","Translated benefits into specific dollar savings ('Labs outside = $200-$400, here included')","Tailored solution to this prospect's specific needs","Simple clear language — no jargon, no info overload","Active dialogue — check-in questions, not a one-sided monologue"]},
