@@ -17,13 +17,16 @@ function getDbClient() {
         CREATE TABLE IF NOT EXISTS qa_results (
           id SERIAL PRIMARY KEY,
           rep_name TEXT,
+          team TEXT,
           call_date TEXT,
           verdict TEXT,
           overall_score INTEGER,
           result_json TEXT,
           created_at TIMESTAMP DEFAULT NOW()
         )
-      `).then(() => client);
+      `).then(() => {
+        return client.query(`ALTER TABLE qa_results ADD COLUMN IF NOT EXISTS team TEXT`).catch(()=>{});
+      }).then(() => client);
     });
   } catch (e) { return Promise.resolve(null); }
 }
@@ -33,18 +36,19 @@ function saveResult(data) {
     if (!client) return;
     const score = overallScore(data);
     return client.query(
-      "INSERT INTO qa_results (rep_name, call_date, verdict, overall_score, result_json) VALUES ($1,$2,$3,$4,$5)",
-      [data.repName || "Unknown", data.date || "", data.verdict || "", score, JSON.stringify(data)]
+      "INSERT INTO qa_results (rep_name, team, call_date, verdict, overall_score, result_json) VALUES ($1,$2,$3,$4,$5,$6)",
+      [data.repName || "Unknown", data.team || "", data.date || "", data.verdict || "", score, JSON.stringify(data)]
     );
   }).catch(() => {});
 }
 
-function getHistory(filter) {
+function getHistory(repFilter, teamFilter) {
   return getDbClient().then(client => {
     if (!client) return [];
-    let q = "SELECT id, rep_name, call_date, verdict, overall_score, result_json, created_at FROM qa_results";
+    let q = "SELECT id, rep_name, team, call_date, verdict, overall_score, result_json, created_at FROM qa_results WHERE 1=1";
     const params = [];
-    if (filter) { q += " WHERE LOWER(rep_name) LIKE $1"; params.push("%" + filter.toLowerCase() + "%"); }
+    if (repFilter) { params.push("%" + repFilter.toLowerCase() + "%"); q += ` AND LOWER(rep_name) LIKE $${params.length}`; }
+    if (teamFilter) { params.push(teamFilter); q += ` AND team = $${params.length}`; }
     q += " ORDER BY created_at DESC LIMIT 200";
     return client.query(q, params).then(r => r.rows);
   }).catch(() => []);
@@ -99,7 +103,7 @@ OBJECTION TOOLS (in order — Vamos does NOT have payment plans, never penalize 
 2. Urgency (limited spots)
 3. Referral bonus ($50 immediate ROI)
 4. Family discount codes
-5. Enrollment fee waiver — LAST RESORT ONLY when call is dying over enrollment fee. Not scored but should be mentioned in coaching if missed.
+5. Enrollment fee waiver — LAST RESORT ONLY when call is dying over enrollment fee. Not scored but mention in coaching if missed.
 
 SCORING: Evaluate each criterion as "pass", "fail", or "na". Be strict on Discovery, Value Framing, and Closing.
 
@@ -156,10 +160,6 @@ FEEDBACK FORMAT — every "fail" note must:
 2. Give word-for-word script of what rep should have said
 3. Include a real sales stat with source
 
-GOOD example: "Cuando Claudia dijo 'casi no me enfermo', no reencuadraste. Podrías haber dicho: 'Muchas personas sanas la usan para los laboratorios — afuera cuestan $300, aquí incluidos.' Reps que conectan beneficios preventivos con ahorro concreto cierran 34% más. (RAIN Group, 2023)"
-
-BAD example (never): "No profundizaste en las necesidades."
-
 SALES STATS TO USE:
 - 4+ discovery questions before presenting = 43% more closes. (RAIN Group, 2023)
 - Prospects who verbalize pain are 2.4x more likely to buy. (Gong.io, 2022)
@@ -200,9 +200,11 @@ JSON structure:
   }
 }`;
 
-const LOGO_BADGE = `<div style="background:#EC4899;padding:10px 18px;border-radius:10px;text-align:center;display:inline-block"><div style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1.2">Vamos Health</div><div style="font-size:8px;font-weight:600;color:rgba(255,255,255,.75);letter-spacing:3px;margin-top:1px">MEDICAL GROUP</div></div>`;
+const TEAMS = ["GDL","West Valley","Arizona 1","Arizona 2","Orem","Team Mana"];
 
-// ─── HTML ─────────────────────────────────────────────────────────────────────
+const LOGO_BADGE = `<div style="background:#EC4899;padding:10px 18px;border-radius:10px;text-align:center;display:inline-block"><div style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1.2">Vamos Health</div><div style="font-size:8px;font-weight:600;color:rgba(255,255,255,.75);letter-spacing:3px;margin-top:1px">MEDICAL GROUP</div></div>`;
+const LOGO_SMALL = `<div style="background:#EC4899;padding:6px 14px;border-radius:8px;text-align:center"><div style="font-size:13px;font-weight:800;color:#fff;letter-spacing:-0.3px;line-height:1.2">Vamos Health</div><div style="font-size:7px;font-weight:600;color:rgba(255,255,255,.75);letter-spacing:2.5px">MEDICAL GROUP</div></div>`;
+
 function buildHTML(appPassword) {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -214,7 +216,7 @@ function buildHTML(appPassword) {
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:system-ui,-apple-system,sans-serif;background:#f9fafb;color:#111827}
     input,textarea,select{font-family:inherit;font-size:13px;padding:8px 11px;border-radius:7px;border:1px solid #e5e7eb;width:100%;outline:none;background:#fff}
-    input:focus,textarea:focus{border-color:#EC4899}
+    input:focus,textarea:focus,select:focus{border-color:#EC4899}
     button{font-family:inherit;cursor:pointer}
     .tab{flex:1;padding:7px 0;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:#6b7280}
     .tab.active{background:#fff;color:#EC4899;box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -238,10 +240,10 @@ function buildHTML(appPassword) {
 <script>
 const CORRECT_PW = ${JSON.stringify(appPassword)};
 const BRAND = "#EC4899";
-const LOGO_HTML = ${JSON.stringify(`<div style="background:#EC4899;padding:6px 14px;border-radius:8px;text-align:center"><div style="font-size:13px;font-weight:800;color:#fff;letter-spacing:-0.3px;line-height:1.2">Vamos Health</div><div style="font-size:7px;font-weight:600;color:rgba(255,255,255,.75);letter-spacing:2.5px">MEDICAL GROUP</div></div>`)};
+const TEAMS = ${JSON.stringify(TEAMS)};
+const LOGO_HTML = ${JSON.stringify(LOGO_SMALL)};
 
 document.getElementById("pw").addEventListener("keydown", e => { if(e.key==="Enter") tryLogin(); });
-
 function tryLogin() {
   const val = document.getElementById("pw").value;
   if(val === CORRECT_PW) {
@@ -253,7 +255,6 @@ function tryLogin() {
     document.getElementById("pw-err").style.display = "block";
   }
 }
-
 (function() {
   const saved = sessionStorage.getItem("vamos_auth");
   if(saved === CORRECT_PW) {
@@ -292,7 +293,7 @@ const VM={
   "critical gaps":{bg:"#fde8e8",text:"#9b1c1c",border:"#dc2626",es:"Brechas Críticas",en:"Critical Gaps"}
 };
 
-let state={tab:"analyze",tx:"",rep:"",date:new Date().toISOString().slice(0,10),loading:false,result:null,err:"",hist:[],viewing:null,filter:"",lang:"both",histLoading:false};
+let state={tab:"analyze",tx:"",rep:"",team:"",date:new Date().toISOString().slice(0,10),loading:false,result:null,err:"",hist:[],viewing:null,filterRep:"",filterTeam:"",lang:"both",histLoading:false};
 
 function calcPct(catId,r){
   const s=r?.categories?.[catId]?.scores||[];
@@ -323,18 +324,17 @@ function el(tag,attrs,children){
 function render(){
   const app=document.getElementById("app");
   app.innerHTML="";
+  // Header
   const hdr=el("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}});
   const hLeft=el("div",{style:{display:"flex",alignItems:"center",gap:"10px"}});
-  const logoEl=document.createElement("div");
-  logoEl.innerHTML=LOGO_HTML;
-  hLeft.appendChild(logoEl.firstChild);
+  const logoEl=document.createElement("div");logoEl.innerHTML=LOGO_HTML;hLeft.appendChild(logoEl.firstChild);
   const ht=el("div");
-  ht.appendChild(el("div",{style:{fontWeight:"800",fontSize:"15px"}},"Vamos Health QA"));
-  ht.appendChild(el("div",{style:{fontSize:"11px",color:"#9ca3af"}},"Sales Call Analyzer — QA System"));
+  ht.appendChild(el("div",{style:{fontSize:"11px",color:"#9ca3af",marginTop:"2px"}},"Sales Call Analyzer — QA System"));
   hLeft.appendChild(ht);hdr.appendChild(hLeft);
   const ls=el("select",{style:{width:"auto",fontSize:"11px",padding:"4px 8px",borderRadius:"6px",border:"1px solid #e5e7eb"},onChange:e=>{state.lang=e.target.value;render();}});
   [["both","ES + EN"],["es","Solo Español"],["en","English only"]].forEach(([v,t])=>{const o=el("option",{value:v},t);if(v===state.lang)o.selected=true;ls.appendChild(o);});
   hdr.appendChild(ls);app.appendChild(hdr);
+  // Tabs
   const tb=el("div",{style:{display:"flex",gap:"4px",marginBottom:"16px",background:"#ececec",borderRadius:"9px",padding:"4px"}});
   [["analyze","Analizar"],["history","Historial"],["trends","Tendencias"],...(state.viewing?[["view","Reporte"]]:[])]
     .forEach(([id,label])=>{
@@ -355,21 +355,33 @@ function render(){
 function loadHistory(){
   if(state.histLoading)return;
   state.histLoading=true;
-  fetch("/api/history?filter="+encodeURIComponent(state.filter))
-    .then(r=>r.json()).then(rows=>{
-      state.hist=rows.map(r=>({...JSON.parse(r.result_json),_dbid:r.id,_created:r.created_at}));
-      state.histLoading=false;render();
-    }).catch(()=>{state.histLoading=false;});
+  const url="/api/history?rep="+encodeURIComponent(state.filterRep)+"&team="+encodeURIComponent(state.filterTeam);
+  fetch(url).then(r=>r.json()).then(rows=>{
+    state.hist=rows.map(r=>({...JSON.parse(r.result_json),_dbid:r.id,_created:r.created_at,_team:r.team}));
+    state.histLoading=false;render();
+  }).catch(()=>{state.histLoading=false;});
 }
 
 function renderAnalyze(app){
   const wrap=el("div",{style:{background:"#fff",borderRadius:"12px",padding:"16px",border:"1px solid #e5e7eb"}});
-  const grid=el("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"12px"}});
+
+  // Row 1: Rep + Team
+  const grid1=el("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"12px"}});
   const rw=el("div");rw.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Nombre del Rep"));
   rw.appendChild(el("input",{type:"text",placeholder:"Ej. Maria Garcia",value:state.rep,onInput:e=>state.rep=e.target.value}));
-  const dw=el("div");dw.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Fecha"));
+  const tw=el("div");tw.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Equipo / Team"));
+  const teamSel=el("select",{onChange:e=>state.team=e.target.value});
+  const defOpt=el("option",{value:""},"Seleccionar equipo...");teamSel.appendChild(defOpt);
+  TEAMS.forEach(t=>{const o=el("option",{value:t},t);if(t===state.team)o.selected=true;teamSel.appendChild(o);});
+  tw.appendChild(teamSel);
+  grid1.appendChild(rw);grid1.appendChild(tw);wrap.appendChild(grid1);
+
+  // Row 2: Date
+  const grid2=el("div",{style:{marginBottom:"12px"}});
+  const dw=el("div",{style:{maxWidth:"50%"}});dw.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Fecha"));
   dw.appendChild(el("input",{type:"date",value:state.date,onInput:e=>state.date=e.target.value}));
-  grid.appendChild(rw);grid.appendChild(dw);wrap.appendChild(grid);
+  grid2.appendChild(dw);wrap.appendChild(grid2);
+
   wrap.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Transcripción de la llamada"));
   wrap.appendChild(el("textarea",{placeholder:"Pega la transcripción aquí (español o inglés)...",style:{width:"100%",minHeight:"180px",resize:"vertical",borderRadius:"8px",border:"1px solid #e5e7eb",padding:"10px 12px",fontSize:"13px",lineHeight:"1.6",marginBottom:"12px",outline:"none",fontFamily:"inherit"},onInput:e=>state.tx=e.target.value},state.tx));
   wrap.appendChild(el("button",{style:{width:"100%",padding:"11px 0",background:state.loading||!state.tx.trim()?"#e5e7eb":BRAND,color:state.loading||!state.tx.trim()?"#9ca3af":"#fff",border:"none",borderRadius:"8px",fontSize:"14px",fontWeight:"700"},onClick:doAnalyze},state.loading?"⏳ Analizando…":"Analizar Llamada"));
@@ -381,11 +393,11 @@ function renderAnalyze(app){
 function doAnalyze(){
   if(!state.tx.trim()||state.loading)return;
   state.loading=true;state.err="";state.result=null;render();
-  fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({transcript:state.tx,repName:state.rep,date:state.date})})
+  fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({transcript:state.tx,repName:state.rep,team:state.team,date:state.date})})
     .then(r=>r.json().then(d=>({ok:r.ok,d})))
     .then(({ok,d})=>{
       if(!ok)throw new Error(d.error||"Server error");
-      state.result={...d,repName:state.rep||d.repName||"Unknown",date:state.date,_id:Date.now()};
+      state.result={...d,repName:state.rep||d.repName||"Unknown",team:state.team,date:state.date,_id:Date.now()};
     })
     .catch(e=>state.err=e.message)
     .finally(()=>{state.loading=false;render();});
@@ -396,6 +408,7 @@ function renderResult(wrap,r){
   const vh=el("div",{style:{background:vm.bg,border:"1px solid "+vm.border,borderRadius:"12px",padding:"14px 18px",marginBottom:"14px",display:"flex",justifyContent:"space-between",alignItems:"center"}});
   const vl=el("div");
   if(r.repName)vl.appendChild(el("div",{style:{fontSize:"17px",fontWeight:"800",color:vm.text}},r.repName));
+  if(r.team)vl.appendChild(el("div",{style:{fontSize:"11px",color:vm.text,opacity:".8",marginTop:"2px"}},"🏢 "+r.team));
   vl.appendChild(el("div",{style:{fontSize:"11px",color:vm.text,opacity:".7"}},r.date||""));
   vl.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"600",color:vm.text,marginTop:"3px"}},vm.es+" / "+vm.en));
   vh.appendChild(vl);
@@ -430,12 +443,12 @@ function renderResult(wrap,r){
     const body=el("div",{style:{padding:"6px 14px 10px",background:"#fff"}});
     scores.forEach((s,i)=>{
       const row=el("div",{style:{padding:"6px 0",borderBottom:i<scores.length-1?"1px solid #f3f4f6":"none"}});
-      const tw=el("div",{style:{fontSize:"12px",color:"#374151",flex:"1",lineHeight:"1.5",display:"flex",flexDirection:"column",gap:"2px"}});
-      if(state.lang==="both"||state.lang==="es")tw.appendChild(el("div",null,c.es[i]||""));
-      if(state.lang==="both")tw.appendChild(el("div",{style:{fontSize:"10px",color:"#9ca3af"}},c.en[i]||""));
-      if(state.lang==="en")tw.appendChild(el("div",null,c.en[i]||""));
+      const tw2=el("div",{style:{fontSize:"12px",color:"#374151",flex:"1",lineHeight:"1.5",display:"flex",flexDirection:"column",gap:"2px"}});
+      if(state.lang==="both"||state.lang==="es")tw2.appendChild(el("div",null,c.es[i]||""));
+      if(state.lang==="both")tw2.appendChild(el("div",{style:{fontSize:"10px",color:"#9ca3af"}},c.en[i]||""));
+      if(state.lang==="en")tw2.appendChild(el("div",null,c.en[i]||""));
       const ri=el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"8px"}});
-      ri.appendChild(tw);
+      ri.appendChild(tw2);
       ri.appendChild(el("span",{className:"badge badge-"+(s==="pass"?"pass":s==="fail"?"fail":"na")},s==="pass"?"✓ Pass":s==="fail"?"✗ Fail":"— N/A"));
       row.appendChild(ri);
       if(s==="fail"){
@@ -462,11 +475,16 @@ function renderResult(wrap,r){
 }
 
 function renderHistory(app){
-  const topRow=el("div",{style:{display:"flex",gap:"8px",marginBottom:"12px"}});
-  const fi=el("input",{type:"text",placeholder:"Filtrar por nombre del rep…",value:state.filter,style:{flex:"1"},onInput:e=>{state.filter=e.target.value;loadHistory();}});
-  topRow.appendChild(fi);
-  topRow.appendChild(el("button",{style:{padding:"8px 14px",background:"#fff",border:"1px solid #e5e7eb",borderRadius:"7px",fontSize:"12px",fontWeight:"600",color:"#374151",whiteSpace:"nowrap"},onClick:exportCSV},"⬇ CSV"));
-  app.appendChild(topRow);
+  // Filters row
+  const filterRow=el("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:"8px",marginBottom:"12px",alignItems:"center"}});
+  const repIn=el("input",{type:"text",placeholder:"Filtrar por rep…",value:state.filterRep,onInput:e=>{state.filterRep=e.target.value;state.histLoading=false;loadHistory();}});
+  const teamSel=el("select",{onChange:e=>{state.filterTeam=e.target.value;state.histLoading=false;loadHistory();}});
+  const allOpt=el("option",{value:""},"Todos los equipos");teamSel.appendChild(allOpt);
+  TEAMS.forEach(t=>{const o=el("option",{value:t},t);if(t===state.filterTeam)o.selected=true;teamSel.appendChild(o);});
+  filterRow.appendChild(repIn);filterRow.appendChild(teamSel);
+  filterRow.appendChild(el("button",{style:{padding:"8px 14px",background:"#fff",border:"1px solid #e5e7eb",borderRadius:"7px",fontSize:"12px",fontWeight:"600",color:"#374151",whiteSpace:"nowrap"},onClick:exportCSV},"⬇ CSV"));
+  app.appendChild(filterRow);
+
   if(state.histLoading){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px",fontSize:"13px"}},"Cargando…"));return;}
   if(!state.hist.length){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px",fontSize:"13px"}},"No hay llamadas aún."));return;}
   state.hist.forEach(h=>{
@@ -474,7 +492,10 @@ function renderHistory(app){
     const row=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"10px",padding:"12px 14px",marginBottom:"10px",display:"flex",justifyContent:"space-between",alignItems:"center"}});
     const left=el("div");
     left.appendChild(el("div",{style:{fontWeight:"700",fontSize:"13px"}},h.repName||"Unknown"));
-    left.appendChild(el("div",{style:{fontSize:"11px",color:"#9ca3af"}},h.date||""));
+    const meta=el("div",{style:{fontSize:"11px",color:"#9ca3af",marginTop:"2px"}});
+    if(h.team||h._team)meta.appendChild(el("span",{style:{background:"#fdf2f8",color:"#9D174D",borderRadius:"4px",padding:"1px 6px",fontSize:"10px",fontWeight:"600",marginRight:"6px"}},h.team||h._team));
+    meta.appendChild(el("span",null,h.date||""));
+    left.appendChild(meta);
     row.appendChild(left);
     const right=el("div",{style:{display:"flex",alignItems:"center",gap:"10px"}});
     const vb=el("div",{style:{background:vm.bg,border:"1px solid "+vm.border,borderRadius:"7px",padding:"5px 12px",textAlign:"center"}});
@@ -489,7 +510,28 @@ function renderHistory(app){
 function renderTrends(app){
   if(state.histLoading){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px"}},"Cargando…"));return;}
   if(!state.hist.length){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px",fontSize:"13px"}},"No hay llamadas aún."));return;}
-  app.appendChild(el("div",{style:{fontWeight:"800",fontSize:"15px",marginBottom:"16px"}},"Tendencias por Rep"));
+
+  // Team averages section
+  const teamData={};
+  state.hist.forEach(h=>{
+    const t=h.team||h._team||"Sin equipo";
+    if(!teamData[t])teamData[t]=[];
+    teamData[t].push(overallPct(h));
+  });
+  app.appendChild(el("div",{style:{fontWeight:"800",fontSize:"15px",marginBottom:"12px"}},"Promedio por Equipo / Team Averages"));
+  const teamGrid=el("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px",marginBottom:"20px"}});
+  Object.entries(teamData).forEach(([team,scores])=>{
+    const avg=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+    const card=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"10px",padding:"12px 10px",textAlign:"center"}});
+    card.appendChild(el("div",{style:{fontSize:"10px",fontWeight:"700",color:"#9D174D",background:"#fdf2f8",borderRadius:"5px",padding:"2px 6px",marginBottom:"6px",display:"inline-block"}},team));
+    card.appendChild(el("div",{style:{fontSize:"22px",fontWeight:"800",color:"#111827"}},avg+"%"));
+    card.appendChild(el("div",{style:{fontSize:"10px",color:"#9ca3af"}},scores.length+" llamada"+(scores.length!==1?"s":"")));
+    teamGrid.appendChild(card);
+  });
+  app.appendChild(teamGrid);
+
+  // Per-rep trends
+  app.appendChild(el("div",{style:{fontWeight:"800",fontSize:"15px",marginBottom:"12px"}},"Tendencias por Rep"));
   const byRep={};
   state.hist.forEach(h=>{const n=h.repName||"Unknown";if(!byRep[n])byRep[n]=[];byRep[n].push(h);});
   Object.entries(byRep).forEach(([name,calls])=>{
@@ -497,21 +539,24 @@ function renderTrends(app){
     const scores=sorted.map(c=>overallPct(c));
     const avg=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
     const trend=scores.length>1?scores[scores.length-1]-scores[0]:0;
+    const team=calls[0]?.team||calls[0]?._team||"";
     const card=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"12px",padding:"14px 16px",marginBottom:"12px"}});
-    const rh=el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}});
+    const rh=el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}});
     const rl=el("div");
     rl.appendChild(el("div",{style:{fontWeight:"700",fontSize:"14px"}},name));
-    rl.appendChild(el("div",{style:{fontSize:"11px",color:"#9ca3af"}},calls.length+" llamada"+(calls.length!==1?"s":"")));
-    rh.appendChild(rl);
-    const rr=el("div",{style:{display:"flex",gap:"10px",alignItems:"center"}});
-    const ab=el("div",{style:{textAlign:"center",background:"#fdf2f8",border:"1px solid #EC4899",borderRadius:"8px",padding:"5px 12px"}});
+    const repMeta=el("div",{style:{fontSize:"11px",color:"#9ca3af",marginTop:"2px"}});
+    if(team)repMeta.appendChild(el("span",{style:{background:"#fdf2f8",color:"#9D174D",borderRadius:"4px",padding:"1px 6px",fontSize:"10px",fontWeight:"600",marginRight:"6px"}},team));
+    repMeta.appendChild(el("span",null,calls.length+" llamada"+(calls.length!==1?"s":"")));
+    rl.appendChild(repMeta);rh.appendChild(rl);
+    const rr=el("div",{style:{display:"flex",gap:"8px",alignItems:"center"}});
+    const ab=el("div",{style:{textAlign:"center",background:"#fdf2f8",border:"1px solid #EC4899",borderRadius:"8px",padding:"5px 10px"}});
     ab.appendChild(el("div",{style:{fontSize:"16px",fontWeight:"800",color:"#9D174D"}},avg+"%"));
     ab.appendChild(el("div",{style:{fontSize:"9px",color:"#9D174D"}},"Promedio"));
     rr.appendChild(ab);
     if(scores.length>1){
       const tc=trend>0?"#085041":trend<0?"#991B1B":"#6b7280";
       const tbg=trend>0?"#E1F5EE":trend<0?"#FEE2E2":"#f3f4f6";
-      const te=el("div",{style:{textAlign:"center",background:tbg,borderRadius:"8px",padding:"5px 12px"}});
+      const te=el("div",{style:{textAlign:"center",background:tbg,borderRadius:"8px",padding:"5px 10px"}});
       te.appendChild(el("div",{style:{fontSize:"16px",fontWeight:"800",color:tc}},(trend>0?"+":"")+trend+"%"));
       te.appendChild(el("div",{style:{fontSize:"9px",color:tc}},"Tendencia"));
       rr.appendChild(te);
@@ -520,31 +565,21 @@ function renderTrends(app){
     if(scores.length>1){
       const maxS=Math.max(...scores),minS=Math.min(...scores),range=maxS-minS||1;
       const w=300,h=50,pad=4;
-      const pts=scores.map((s,i)=>{
-        const x=pad+(i/(scores.length-1))*(w-2*pad);
-        const y=pad+((maxS-s)/range)*(h-2*pad);
-        return x+","+y;
-      }).join(" ");
+      const pts=scores.map((s,i)=>{const x=pad+(i/(scores.length-1))*(w-2*pad);const y=pad+((maxS-s)/range)*(h-2*pad);return x+","+y;}).join(" ");
       const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
-      svg.setAttribute("viewBox","0 0 "+w+" "+h);
-      svg.setAttribute("style","width:100%;height:50px;");
+      svg.setAttribute("viewBox","0 0 "+w+" "+h);svg.setAttribute("style","width:100%;height:50px;");
       const poly=document.createElementNS("http://www.w3.org/2000/svg","polyline");
       poly.setAttribute("points",pts);poly.setAttribute("fill","none");
       poly.setAttribute("stroke",BRAND);poly.setAttribute("stroke-width","2");
       poly.setAttribute("stroke-linejoin","round");svg.appendChild(poly);
       scores.forEach((s,i)=>{
-        const x=pad+(i/(scores.length-1))*(w-2*pad);
-        const y=pad+((maxS-s)/range)*(h-2*pad);
+        const x=pad+(i/(scores.length-1))*(w-2*pad);const y=pad+((maxS-s)/range)*(h-2*pad);
         const circle=document.createElementNS("http://www.w3.org/2000/svg","circle");
-        circle.setAttribute("cx",x);circle.setAttribute("cy",y);
-        circle.setAttribute("r","3");circle.setAttribute("fill",BRAND);
-        svg.appendChild(circle);
+        circle.setAttribute("cx",x);circle.setAttribute("cy",y);circle.setAttribute("r","3");circle.setAttribute("fill",BRAND);svg.appendChild(circle);
       });
       card.appendChild(svg);
       const dr=el("div",{style:{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#9ca3af",marginTop:"2px"}});
-      dr.appendChild(el("span",null,sorted[0].date||""));
-      dr.appendChild(el("span",null,sorted[sorted.length-1].date||""));
-      card.appendChild(dr);
+      dr.appendChild(el("span",null,sorted[0].date||""));dr.appendChild(el("span",null,sorted[sorted.length-1].date||""));card.appendChild(dr);
     }
     app.appendChild(card);
   });
@@ -558,17 +593,16 @@ function renderView(app){
 
 function exportCSV(){
   if(!state.hist.length)return;
-  const headers=["Rep","Fecha","Veredicto","Score General","Saludo","Descubrimiento","Presentación","Objeciones","Cierre","Rapport"];
+  const headers=["Rep","Equipo","Fecha","Veredicto","Score General","Saludo","Descubrimiento","Presentación","Objeciones","Cierre","Rapport"];
   const rows=state.hist.map(h=>[
-    h.repName||"",h.date||"",h.verdict||"",overallPct(h),
+    h.repName||"",h.team||h._team||"",h.date||"",h.verdict||"",overallPct(h),
     calcPct("greeting",h)??"",calcPct("discovery",h)??"",calcPct("presentation",h)??"",
     calcPct("objections",h)??"",calcPct("closing",h)??"",calcPct("rapport",h)??""
   ]);
   const csv=[headers,...rows].map(r=>r.map(v=>'"'+(String(v).replace(/"/g,'""'))+'"').join(",")).join("\\n");
   const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
-  a.download="VamosQA_Team_"+new Date().toISOString().slice(0,10)+".csv";
-  a.click();
+  a.download="VamosQA_Team_"+new Date().toISOString().slice(0,10)+".csv";a.click();
 }
 
 function downloadReport(r){
@@ -584,11 +618,10 @@ function downloadReport(r){
     const pct=calcPct(c.id,r);
     return'<tr><td colspan="2" style="background:'+c.bg+';padding:8px 10px;font-weight:700;font-size:12px;color:'+c.tc+';border-top:2px solid '+c.color+'">'+c.label+" / "+c.label_en+(pct!==null?" — "+pct+"%":"")+"</td></tr>"+items;
   }).join("");
-  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QA Report</title></head><body style="font-family:system-ui;max-width:740px;margin:0 auto;padding:30px;color:#111"><div style="display:flex;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #EC4899"><div><div style="font-size:20px;font-weight:800;color:#EC4899">Vamos Health QA</div><div style="font-size:14px;margin-top:4px">'+(r.repName||"")+'</div><div style="font-size:11px;color:#9ca3af">'+(r.date||"")+'</div></div><div style="background:'+vm.bg+';border:1px solid '+vm.border+';border-radius:10px;padding:12px 20px;text-align:center"><div style="font-size:32px;font-weight:800;color:'+vm.text+'">'+sc+'%</div><div style="font-size:11px;color:'+vm.text+'">'+vm.es+" / "+vm.en+'</div></div></div>'+(r.summary_es?'<div style="background:#f5f5f5;border-left:3px solid #EC4899;padding:10px 14px;margin-bottom:20px;font-size:12px;line-height:1.7;color:#374151">'+r.summary_es+(r.summary_en?"<br><br><span style='color:#9ca3af'>"+r.summary_en+"</span>":"")+"</div>":"")+'<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'+rows+"</table>"+(r.coaching_es?'<div style="background:#fdf2f8;border:1px solid #EC4899;border-radius:8px;padding:14px;font-size:12px;color:#9D174D;line-height:1.7"><strong>🎯 Coaching</strong><br><br>'+r.coaching_es+(r.coaching_en?"<br><br><em style='color:#BE185D'>"+r.coaching_en+"</em>":"")+"</div>":"")+'<div style="margin-top:28px;text-align:center;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:12px">Vamos Health QA · '+new Date().toLocaleDateString()+"</div></body></html>";
+  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QA Report</title></head><body style="font-family:system-ui;max-width:740px;margin:0 auto;padding:30px;color:#111"><div style="display:flex;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #EC4899"><div><div style="font-size:20px;font-weight:800;color:#EC4899">Vamos Health QA</div><div style="font-size:14px;margin-top:4px">'+(r.repName||"")+(r.team?' <span style="font-size:11px;background:#fdf2f8;color:#9D174D;border-radius:4px;padding:2px 7px">'+r.team+"</span>":"")+'</div><div style="font-size:11px;color:#9ca3af">'+(r.date||"")+'</div></div><div style="background:'+vm.bg+';border:1px solid '+vm.border+';border-radius:10px;padding:12px 20px;text-align:center"><div style="font-size:32px;font-weight:800;color:'+vm.text+'">'+sc+'%</div><div style="font-size:11px;color:'+vm.text+'">'+vm.es+" / "+vm.en+'</div></div></div>'+(r.summary_es?'<div style="background:#f5f5f5;border-left:3px solid #EC4899;padding:10px 14px;margin-bottom:20px;font-size:12px;line-height:1.7;color:#374151">'+r.summary_es+(r.summary_en?"<br><br><span style='color:#9ca3af'>"+r.summary_en+"</span>":"")+"</div>":"")+'<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'+rows+"</table>"+(r.coaching_es?'<div style="background:#fdf2f8;border:1px solid #EC4899;border-radius:8px;padding:14px;font-size:12px;color:#9D174D;line-height:1.7"><strong>🎯 Coaching</strong><br><br>'+r.coaching_es+(r.coaching_en?"<br><br><em style='color:#BE185D'>"+r.coaching_en+"</em>":"")+"</div>":"")+'<div style="margin-top:28px;text-align:center;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:12px">Vamos Health QA · '+new Date().toLocaleDateString()+"</div></body></html>";
   const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([html],{type:"text/html"}));
-  a.download="VamosQA_"+((r.repName||"Rep").replace(/\\s+/g,"_"))+"_"+(r.date||"report")+".html";
-  a.click();
+  a.download="VamosQA_"+((r.repName||"Rep").replace(/\\s+/g,"_"))+"_"+(r.date||"report")+".html";a.click();
 }
 </script>
 </body>
@@ -597,7 +630,8 @@ function downloadReport(r){
 
 // ─── SERVER ───────────────────────────────────────────────────────────────────
 const server = http.createServer((req, res) => {
-  const url = req.url.split("?")[0];
+  const urlParts = req.url.split("?");
+  const url = urlParts[0];
   const appPassword = process.env.QA_PASSWORD || "VamosQA2026";
 
   if (req.method === "GET" && (url === "/" || url === "/index.html")) {
@@ -607,9 +641,8 @@ const server = http.createServer((req, res) => {
   }
 
   if (req.method === "GET" && url === "/api/history") {
-    const qs = new URLSearchParams(req.url.split("?")[1] || "");
-    const filter = qs.get("filter") || "";
-    getHistory(filter).then(rows => {
+    const qs = new URLSearchParams(urlParts[1] || "");
+    getHistory(qs.get("rep") || "", qs.get("team") || "").then(rows => {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(rows));
     });
@@ -621,7 +654,7 @@ const server = http.createServer((req, res) => {
     req.on("data", c => body += c);
     req.on("end", () => {
       try {
-        const { transcript, repName, date } = JSON.parse(body);
+        const { transcript, repName, team, date } = JSON.parse(body);
         const apiKey = process.env.ANTHROPIC_API_KEY;
         if (!apiKey) {
           res.writeHead(500, { "Content-Type": "application/json" });
@@ -632,16 +665,11 @@ const server = http.createServer((req, res) => {
           model: "claude-sonnet-4-6",
           max_tokens: 6000,
           system: SYSTEM_PROMPT,
-          messages: [{ role: "user", content: (repName ? `Rep name: ${repName}\n\n` : "") + "Transcript:\n" + transcript }]
+          messages: [{ role: "user", content: (repName ? `Rep name: ${repName}\n` : "") + (team ? `Team: ${team}\n` : "") + "\nTranscript:\n" + transcript }]
         });
         const options = {
           hostname: "api.anthropic.com", path: "/v1/messages", method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "anthropic-version": "2023-06-01",
-            "x-api-key": apiKey,
-            "Content-Length": Buffer.byteLength(payload)
-          }
+          headers: { "Content-Type": "application/json", "anthropic-version": "2023-06-01", "x-api-key": apiKey, "Content-Length": Buffer.byteLength(payload) }
         };
         const apiReq = https.request(options, apiRes => {
           let data = "";
@@ -649,35 +677,22 @@ const server = http.createServer((req, res) => {
           apiRes.on("end", () => {
             try {
               const parsed = JSON.parse(data);
-              if (parsed.error) {
-                res.writeHead(400, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ error: parsed.error.message }));
-                return;
-              }
+              if (parsed.error) { res.writeHead(400, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: parsed.error.message })); return; }
               const text = (parsed.content || []).map(b => b.text || "").join("").trim();
               const clean = text.replace(/^```json\s*/, "").replace(/\s*```$/, "").trim();
               const result = JSON.parse(clean);
               result.repName = repName || result.repName || "Unknown";
+              result.team = team || "";
               result.date = date || "";
               saveResult(result);
               res.writeHead(200, { "Content-Type": "application/json" });
               res.end(JSON.stringify(result));
-            } catch (e) {
-              res.writeHead(500, { "Content-Type": "application/json" });
-              res.end(JSON.stringify({ error: "Failed to parse AI response: " + e.message }));
-            }
+            } catch (e) { res.writeHead(500, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: "Failed to parse AI response: " + e.message })); }
           });
         });
-        apiReq.on("error", e => {
-          res.writeHead(500, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "API request failed: " + e.message }));
-        });
-        apiReq.write(payload);
-        apiReq.end();
-      } catch (e) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Bad request: " + e.message }));
-      }
+        apiReq.on("error", e => { res.writeHead(500, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: "API request failed: " + e.message })); });
+        apiReq.write(payload); apiReq.end();
+      } catch (e) { res.writeHead(400, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: "Bad request: " + e.message })); }
     });
     return;
   }
