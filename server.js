@@ -25,9 +25,7 @@ function getDbClient() {
         )
       `).then(() => client);
     });
-  } catch (e) {
-    return Promise.resolve(null);
-  }
+  } catch (e) { return Promise.resolve(null); }
 }
 
 function saveResult(data) {
@@ -79,9 +77,7 @@ FAMILY DISCOUNTS: 1 adult+1 child=$10/mo off. +2 children=$20/mo off. +3=$30/mo 
 
 12 INCLUDED LABS: Urinalysis, Basic Metabolic Panel, Comprehensive Metabolic Panel, CBC, Urine Culture, HbA1c, Cholesterol/Lipid Panel, Pap Smear, PSA, Thyroid Function, Strep Test, Pregnancy Test. Outside cost: $200-$400+.
 
-KEY SERVICES: School physicals (required, included), diabetes management, hypertension control, GLP-1 weight loss, mental health, women's health, sports medicine, newborn exams, STD treatment, allergy treatment, wound care, nutrition counseling.
-
-VAMOS JUNTOS: Membership includes discounts on cell phones (save up to $25), restaurants, groceries, movies, hotels, car rentals, flights. Use when prospect is hesitant.
+KEY SERVICES: General exams, diabetes management, hypertension control, GLP-1 weight loss, mental health, women's health, sports medicine, newborn exams, STD treatment, allergy treatment, wound care, nutrition counseling, school physicals (required, included), skin conditions, migraines, asthma, thyroid issues, infections, joint pain, sleep disorders, prenatal care, chronic disease management.
 
 REFERRAL PROGRAM: $50 cash per successful referral (not same household). Mention at close and 3-week follow-up.
 
@@ -103,23 +99,23 @@ OBJECTION TOOLS (in order — Vamos does NOT have payment plans, never penalize 
 2. Urgency (limited spots)
 3. Referral bonus ($50 immediate ROI)
 4. Family discount codes
-5. Enrollment fee waiver — LAST RESORT ONLY when call is dying over enrollment fee. Must try steps 1-4 first. If call collapsed over enrollment fee without attempting this, mark as missed opportunity.
+5. Enrollment fee waiver — LAST RESORT ONLY when call is dying over enrollment fee. Not scored but should be mentioned in coaching if missed.
 
 SCORING: Evaluate each criterion as "pass", "fail", or "na". Be strict on Discovery, Value Framing, and Closing.
 
 GREETING (4 criteria):
-1. Introduced with full name and mentioned Vamos Health clearly
-2. Established the purpose of the call clearly within the first 20 seconds (who they are, why they're calling, what Vamos offers) — does not require a hard sales hook, just clarity and direction
-3. Asked prospect's name and used it naturally throughout
-4. Warm, professional, confident tone from first seconds
+1. Introduced themselves with a name (first name is sufficient) and mentioned Vamos Health
+2. Established the purpose of the call clearly within the first 20 seconds — clarity and direction, not necessarily a hard sales hook
+3. Asked for the prospect's name and used it naturally during the call
+4. Set a warm, professional, and confident tone from the very first seconds
 
 DISCOVERY (6 criteria):
-1. Asked about health conditions (hypertension, diabetes, cholesterol — highest-value profiles)
-2. Asked about insurance status (no insurance = Core pitch; has insurance = Vital/complement pitch)
-3. Explored family situation (spouse, kids) — THIS IS NOT A PASS/FAIL CRITERION. Score "na" if family was not mentioned in the call. Score "pass" if rep explored it. NEVER score "fail" for this criterion. If rep mentioned family discounts or school physicals, add a positive note in coaching recognizing it as a best practice.
-4. Identified IMMEDIATE pain before presenting anything
-5. Active listening — paraphrased or confirmed what prospect said
-6. Follow-up questions based on prospect's answers, not a rigid script
+1. Asked about any health concerns or conditions — this includes ANY primary care topic: chronic conditions, recent symptoms, medications, pain, preventive needs, mental health, women's health, skin issues, or anything health-related. Score "fail" if rep never asked about health at all.
+2. Asked about insurance status — critical pivot (no insurance = Core pitch; has insurance = Vital/complement pitch)
+3. Explored family situation (spouse, children) — score "pass" if explored, "fail" if not explored at all, "na" only if prospect clearly lives alone with no family context
+4. Identified the prospect's IMMEDIATE pain or need before presenting anything
+5. Active listening — paraphrased, reflected, or confirmed what the prospect said
+6. Follow-up questions based on the prospect's answers, not a rigid script
 
 PRESENTATION (5 criteria):
 1. Presented AFTER discovering pain — did not pitch without understanding prospect first
@@ -132,14 +128,14 @@ OBJECTIONS (5 criteria):
 1. Received objections calmly — used "Entiendo", "Tiene sentido", "Eso es muy común"
 2. Clarified objection with a question before responding
 3. Addressed price with value anchoring vs outside costs — NOT payment plans (don't exist at Vamos)
-4. Used approved tools in order: value anchoring → urgency → referral bonus → family discount → enrollment fee waiver (last resort)
+4. Used approved tools in order: value anchoring → urgency → referral bonus → family discount
 5. Confirmed objection was resolved before moving on
 
 CLOSING (5 criteria):
 1. Asked for the sale directly and confidently
 2. Attempted same-day phone close — even when prospect said they needed to think or talk to spouse
 3. Used proper technique: assumptive ("¿Con qué tarjeta?"), alternative ("¿Hoy o mañana?"), or urgency ("Los cupos se llenan")
-4. When hesitation arose, probed with questions instead of giving up ("¿Qué es lo que le gustaría pensar?")
+4. When hesitation arose, probed with questions instead of giving up
 5. Secured concrete next step with exact date and time — or closed. "Hablamos pronto" = fail.
 
 RAPPORT — ENTIRE CALL (5 criteria):
@@ -149,13 +145,11 @@ RAPPORT — ENTIRE CALL (5 criteria):
 4. Trust built through honesty and transparency — no false promises
 5. Energy and warmth consistent even through objections or silence
 
-MISSED OPPORTUNITIES (6 criteria — "fail"=missed, "pass"=handled or not applicable):
+MISSED OPPORTUNITIES (4 criteria — "fail"=missed, "pass"=handled or not applicable):
 1. Buying signal ignored — interest shown but not capitalized on
 2. Family opportunity missed — spouse or kids mentioned but family plan/discounts/school physicals not explored
-3. Pain mentioned in passing but not explored
+3. Pain mentioned in passing but not explored deeper
 4. $50 referral bonus not mentioned at close
-5. Vamos Juntos not used when prospect was hesitant
-6. Enrollment fee waiver not attempted when call died over enrollment fee cost
 
 FEEDBACK FORMAT — every "fail" note must:
 1. Name the exact moment from the transcript
@@ -202,9 +196,36 @@ JSON structure:
     "objections":    { "scores": ["na","na","na","na","na"],       "notes_es": ["","","","",""],         "notes_en": ["","","","",""] },
     "closing":       { "scores": ["na","na","na","na","na"],       "notes_es": ["","","","",""],         "notes_en": ["","","","",""] },
     "rapport":       { "scores": ["na","na","na","na","na"],       "notes_es": ["","","","",""],         "notes_en": ["","","","",""] },
-    "opportunities": { "scores": ["na","na","na","na","na","na"],  "notes_es": ["","","","","",""],      "notes_en": ["","","","","",""] }
+    "opportunities": { "scores": ["na","na","na","na"],            "notes_es": ["","","",""],            "notes_en": ["","","",""] }
   }
 }`;
+
+const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" width="36" height="36">
+  <g transform="translate(600,600)">
+    <polygon points="0,-280 66,-66 280,0 66,66 0,280 -66,66 -280,0 -66,-66" fill="white" opacity="0"/>
+    <g>
+      <polygon points="0,-380 90,-90 380,0 90,90 0,380 -90,90 -380,0 -90,-90" fill="none"/>
+      <!-- Pink diamonds -->
+      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(0)"/>
+      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(45)"/>
+      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(90)"/>
+      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(135)"/>
+      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(180)"/>
+      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(225)"/>
+      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(270)"/>
+      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(315)"/>
+      <!-- Gold arrows -->
+      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(0)"/>
+      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(45)"/>
+      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(90)"/>
+      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(135)"/>
+      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(180)"/>
+      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(225)"/>
+      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(270)"/>
+      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(315)"/>
+    </g>
+  </g>
+</svg>`;
 
 // ─── HTML ─────────────────────────────────────────────────────────────────────
 function buildHTML(appPassword) {
@@ -218,10 +239,10 @@ function buildHTML(appPassword) {
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:system-ui,-apple-system,sans-serif;background:#f9fafb;color:#111827}
     input,textarea,select{font-family:inherit;font-size:13px;padding:8px 11px;border-radius:7px;border:1px solid #e5e7eb;width:100%;outline:none;background:#fff}
-    input:focus,textarea:focus{border-color:#7F77DD}
+    input:focus,textarea:focus{border-color:#EC4899}
     button{font-family:inherit;cursor:pointer}
     .tab{flex:1;padding:7px 0;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:#6b7280}
-    .tab.active{background:#fff;color:#7F77DD;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+    .tab.active{background:#fff;color:#EC4899;box-shadow:0 1px 3px rgba(0,0,0,.08)}
     .badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap}
     .badge-pass{background:#E1F5EE;color:#085041}
     .badge-fail{background:#FEE2E2;color:#991B1B}
@@ -231,24 +252,28 @@ function buildHTML(appPassword) {
 <body>
 <div id="lock" style="position:fixed;inset:0;background:#f9fafb;display:flex;align-items:center;justify-content:center;z-index:999">
   <div style="background:#fff;border-radius:16px;padding:36px 32px;border:1px solid #e5e7eb;width:100%;max-width:340px;text-align:center">
-    <div style="width:48px;height:48px;background:#7F77DD;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#fff;font-weight:800;font-size:20px">V</div>
-    <div style="font-weight:800;font-size:18px;margin-bottom:4px">Vamos Health QA</div>
+    <div style="width:56px;height:56px;background:#fff3f8;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;border:1px solid #fce7f3">
+      ${LOGO_SVG}
+    </div>
+    <div style="font-weight:800;font-size:18px;margin-bottom:4px;color:#111827">Vamos Health QA</div>
     <div style="font-size:12px;color:#9ca3af;margin-bottom:24px">Ingresa la contraseña del equipo</div>
     <input id="pw" type="password" placeholder="Contraseña..." style="margin-bottom:12px;text-align:center"/>
-    <button onclick="tryLogin()" style="width:100%;padding:10px 0;background:#7F77DD;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700">Entrar</button>
+    <button onclick="tryLogin()" style="width:100%;padding:10px 0;background:#EC4899;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700">Entrar</button>
     <div id="pw-err" style="color:#EF4444;font-size:12px;margin-top:8px;display:none">Contraseña incorrecta</div>
   </div>
 </div>
 <div id="app" style="max-width:680px;margin:0 auto;padding:16px 12px;min-height:100vh;display:none"></div>
 <script>
 const CORRECT_PW = ${JSON.stringify(appPassword)};
-const BRAND="#7F77DD";
+const BRAND = "#EC4899";
+const LOGO_HTML = ${JSON.stringify(`<div style="width:36px;height:36px;background:#fff3f8;border-radius:9px;display:flex;align-items:center;justify-content:center;border:1px solid #fce7f3;flex-shrink:0">${LOGO_SVG}</div>`)};
 
 document.getElementById("pw").addEventListener("keydown", e => { if(e.key==="Enter") tryLogin(); });
 
 function tryLogin() {
   const val = document.getElementById("pw").value;
   if(val === CORRECT_PW) {
+    sessionStorage.setItem("vamos_auth", val);
     document.getElementById("lock").style.display = "none";
     document.getElementById("app").style.display = "block";
     render();
@@ -257,7 +282,6 @@ function tryLogin() {
   }
 }
 
-// Auto-login if password was previously saved
 (function() {
   const saved = sessionStorage.getItem("vamos_auth");
   if(saved === CORRECT_PW) {
@@ -268,17 +292,17 @@ function tryLogin() {
 
 const CATS=[
   {id:"greeting",label:"Saludo",label_en:"Greeting",color:"#5DCAA5",bg:"#E1F5EE",tc:"#085041",
-   es:["Se presentó con nombre completo y mencionó Vamos Health","Estableció el propósito de la llamada en los primeros 20 segundos","Preguntó el nombre del prospecto y lo usó naturalmente","Tono cálido, profesional y seguro desde el inicio"],
-   en:["Introduced with full name and mentioned Vamos Health","Established purpose of the call within the first 20 seconds","Asked prospect's name and used it naturally","Warm, professional, confident tone from the start"]},
-  {id:"discovery",label:"Descubrimiento",label_en:"Discovery",color:"#7F77DD",bg:"#EEEDFE",tc:"#3C3489",
-   es:["Preguntó sobre condiciones de salud (hipertensión, diabetes, colesterol)","Preguntó sobre estatus de seguro médico — pivote crítico","Exploró situación familiar — pass si exploró, n/a si no se mencionó, nunca fail","Identificó el dolor INMEDIATO antes de presentar","Escucha activa — parafraseó o confirmó lo que escuchó","Preguntas basadas en respuestas del prospecto, no en guión"],
-   en:["Asked about health conditions (hypertension, diabetes, cholesterol)","Asked about insurance status — critical pitch pivot","Explored family situation — pass if explored, n/a if not mentioned, never fail","Identified IMMEDIATE pain before presenting anything","Active listening — paraphrased or confirmed what was heard","Follow-up questions based on prospect's answers, not a script"]},
+   es:["Se presentó con un nombre y mencionó Vamos Health","Estableció el propósito de la llamada en los primeros 20 segundos","Preguntó el nombre del prospecto y lo usó naturalmente","Tono cálido, profesional y seguro desde el inicio"],
+   en:["Introduced with a name and mentioned Vamos Health","Established purpose of the call within the first 20 seconds","Asked prospect's name and used it naturally","Warm, professional, confident tone from the start"]},
+  {id:"discovery",label:"Descubrimiento",label_en:"Discovery",color:"#EC4899",bg:"#FDF2F8",tc:"#9D174D",
+   es:["Preguntó sobre cualquier preocupación o condición de salud (cualquier tema de atención primaria)","Preguntó sobre estatus de seguro médico — pivote crítico","Exploró situación familiar (cónyuge, hijos) — fail si no se exploró","Identificó el dolor INMEDIATO antes de presentar","Escucha activa — parafraseó o confirmó lo que escuchó","Preguntas basadas en respuestas del prospecto, no en guión"],
+   en:["Asked about any health concerns or conditions (any primary care topic)","Asked about insurance status — critical pitch pivot","Explored family situation (spouse, kids) — fail if not explored","Identified IMMEDIATE pain before presenting anything","Active listening — paraphrased or confirmed what was heard","Follow-up questions based on prospect's answers, not a script"]},
   {id:"presentation",label:"Presentación",label_en:"Presentation",color:"#D4537E",bg:"#FBEAF0",tc:"#72243E",
    es:["Presentó DESPUÉS de descubrir el dolor","Tradujo beneficios a ahorros concretos en dólares","Personalizó la solución a las necesidades específicas","Lenguaje simple y claro — sin jerga","Diálogo activo — no un monólogo"],
    en:["Presented AFTER discovering pain","Translated benefits into specific dollar savings","Tailored solution to prospect's specific needs","Simple clear language — no jargon","Active dialogue — not a monologue"]},
   {id:"objections",label:"Objeciones",label_en:"Objections",color:"#D85A30",bg:"#FAECE7",tc:"#712B13",
-   es:["Recibió objeciones con calma — 'Entiendo', 'Tiene sentido'","Clarificó la objeción antes de responder","Respondió al precio con valor — NO planes de pago","Usó herramientas en orden: valor → urgencia → referido → descuento → exención","Confirmó resolución antes de continuar"],
-   en:["Received objections calmly — 'Entiendo', 'Tiene sentido'","Clarified objection before responding","Addressed price with value — NOT payment plans","Used approved tools in order","Confirmed objection resolved before moving on"]},
+   es:["Recibió objeciones con calma — 'Entiendo', 'Tiene sentido'","Clarificó la objeción antes de responder","Respondió al precio con valor — NO planes de pago","Usó herramientas: valor → urgencia → referido → descuento familiar","Confirmó resolución antes de continuar"],
+   en:["Received objections calmly — 'Entiendo', 'Tiene sentido'","Clarified objection before responding","Addressed price with value — NOT payment plans","Used tools: value → urgency → referral bonus → family discount","Confirmed objection resolved before moving on"]},
   {id:"closing",label:"Cierre",label_en:"Closing",color:"#639922",bg:"#EAF3DE",tc:"#27500A",
    es:["Pidió la venta directamente","Intentó cerrar el mismo día por teléfono","Usó técnica: asuntivo, alternativa o urgencia","Ante dudas profundizó con preguntas","Aseguró próximo paso concreto — 'Hablamos pronto' = falla"],
    en:["Asked for the sale directly","Attempted same-day phone close","Used proper technique: assumptive, alternative, or urgency","Probed with questions when hesitation arose","Secured concrete next step — 'Talk soon' = fail"]},
@@ -286,13 +310,13 @@ const CATS=[
    es:["Tono empático de principio a fin","El prospecto se sintió escuchado y valorado","El prospecto habló MÁS que el rep","Confianza con honestidad — sin falsas promesas","Energía consistente incluso ante objeciones"],
    en:["Empathetic tone from start to finish","Prospect felt heard and valued","Prospect talked MORE than the rep","Trust through honesty — no false promises","Energy consistent even through objections"]},
   {id:"opportunities",label:"Oportunidades Perdidas",label_en:"Missed Opportunities",color:"#888780",bg:"#F1EFE8",tc:"#2C2C2A",
-   es:["Señal de compra ignorada","Oportunidad familiar perdida","Dolor mencionado sin profundizar","Bono de $50 por referido no mencionado","Vamos Juntos no usado cuando dudaba","Exención de inscripción no intentada"],
-   en:["Buying signal ignored","Family opportunity missed","Pain mentioned but not explored","$50 referral bonus not mentioned","Vamos Juntos not used when hesitant","Enrollment fee waiver not attempted"]}
+   es:["Señal de compra ignorada — interés no capitalizado","Oportunidad familiar perdida — no se exploró plan, descuentos o chequeos escolares","Dolor mencionado de pasada sin profundizar","Bono de $50 por referido no mencionado al cierre"],
+   en:["Buying signal ignored — prospect interest not capitalized","Family opportunity missed — plan/discounts/school physicals not explored","Pain mentioned in passing but not explored","$50 referral bonus not mentioned at close"]}
 ];
 
 const VM={
   "strong":{bg:"#def7ec",text:"#03543f",border:"#03543f",es:"Sólido",en:"Strong"},
-  "needs coaching":{bg:"#fef3c7",text:"#92400e",border:"#d97706",es:"Necesita Coaching",en:"Needs Coaching"},
+  "needs coaching":{bg:"#fdf2f8",text:"#9d174d",border:"#EC4899",es:"Necesita Coaching",en:"Needs Coaching"},
   "critical gaps":{bg:"#fde8e8",text:"#9b1c1c",border:"#dc2626",es:"Brechas Críticas",en:"Critical Gaps"}
 };
 
@@ -329,7 +353,9 @@ function render(){
   app.innerHTML="";
   const hdr=el("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}});
   const hLeft=el("div",{style:{display:"flex",alignItems:"center",gap:"10px"}});
-  hLeft.appendChild(el("div",{style:{width:"36px",height:"36px",background:BRAND,borderRadius:"9px",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:"800",fontSize:"16px"}},"V"));
+  const logoEl=document.createElement("div");
+  logoEl.innerHTML=LOGO_HTML;
+  hLeft.appendChild(logoEl.firstChild);
   const ht=el("div");
   ht.appendChild(el("div",{style:{fontWeight:"800",fontSize:"15px"}},"Vamos Health QA"));
   ht.appendChild(el("div",{style:{fontSize:"11px",color:"#9ca3af"}},"Sales Call Analyzer"));
@@ -401,7 +427,7 @@ function renderResult(wrap,r){
   vl.appendChild(el("div",{style:{fontSize:"11px",color:vm.text,opacity:".7"}},r.date||""));
   vl.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"600",color:vm.text,marginTop:"3px"}},vm.es+" / "+vm.en));
   vh.appendChild(vl);
-  const vr=el("div",{style:{textAlign:"center",background:"rgba(255,255,255,.5)",borderRadius:"10px",padding:"10px 16px"}});
+  const vr=el("div",{style:{textAlign:"center",background:"rgba(255,255,255,.6)",borderRadius:"10px",padding:"10px 16px"}});
   vr.appendChild(el("div",{style:{fontSize:"32px",fontWeight:"800",color:vm.text}},sc+"%"));
   vr.appendChild(el("div",{style:{fontSize:"10px",color:vm.text}},"Overall"));
   vh.appendChild(vr);wrap.appendChild(vh);
@@ -454,10 +480,10 @@ function renderResult(wrap,r){
     box.appendChild(body);wrap.appendChild(box);
   });
   if(r.coaching_es||r.coaching_en){
-    const cb=el("div",{style:{background:"#EEEDF9",border:"1px solid "+BRAND,borderRadius:"10px",padding:"13px 15px",marginTop:"4px"}});
-    cb.appendChild(el("div",{style:{fontWeight:"700",fontSize:"13px",color:"#3730A3",marginBottom:"7px"}},"🎯 Coaching"));
-    if((state.lang==="both"||state.lang==="es")&&r.coaching_es)cb.appendChild(el("div",{style:{fontSize:"12px",color:"#3730A3",lineHeight:"1.7",marginBottom:"8px"}},r.coaching_es));
-    if((state.lang==="both"||state.lang==="en")&&r.coaching_en)cb.appendChild(el("div",{style:{fontSize:"12px",color:"#4338CA",lineHeight:"1.7"}},r.coaching_en));
+    const cb=el("div",{style:{background:"#fdf2f8",border:"1px solid #EC4899",borderRadius:"10px",padding:"13px 15px",marginTop:"4px"}});
+    cb.appendChild(el("div",{style:{fontWeight:"700",fontSize:"13px",color:"#9D174D",marginBottom:"7px"}},"🎯 Coaching"));
+    if((state.lang==="both"||state.lang==="es")&&r.coaching_es)cb.appendChild(el("div",{style:{fontSize:"12px",color:"#9D174D",lineHeight:"1.7",marginBottom:"8px"}},r.coaching_es));
+    if((state.lang==="both"||state.lang==="en")&&r.coaching_en)cb.appendChild(el("div",{style:{fontSize:"12px",color:"#BE185D",lineHeight:"1.7"}},r.coaching_en));
     wrap.appendChild(cb);
   }
   wrap.appendChild(el("button",{style:{width:"100%",marginTop:"14px",background:BRAND,color:"#fff",border:"none",borderRadius:"8px",padding:"10px 0",fontSize:"13px",fontWeight:"700"},onClick:()=>downloadReport(r)},"⬇ Download Report"));
@@ -499,7 +525,6 @@ function renderTrends(app){
     const scores=sorted.map(c=>overallPct(c));
     const avg=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
     const trend=scores.length>1?scores[scores.length-1]-scores[0]:0;
-    const vm=VM[calls[0]?.verdict]||VM["needs coaching"];
     const card=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"12px",padding:"14px 16px",marginBottom:"12px"}});
     const rh=el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}});
     const rl=el("div");
@@ -507,9 +532,9 @@ function renderTrends(app){
     rl.appendChild(el("div",{style:{fontSize:"11px",color:"#9ca3af"}},calls.length+" llamada"+(calls.length!==1?"s":"")));
     rh.appendChild(rl);
     const rr=el("div",{style:{display:"flex",gap:"10px",alignItems:"center"}});
-    const ab=el("div",{style:{textAlign:"center",background:vm.bg,border:"1px solid "+vm.border,borderRadius:"8px",padding:"5px 12px"}});
-    ab.appendChild(el("div",{style:{fontSize:"16px",fontWeight:"800",color:vm.text}},avg+"%"));
-    ab.appendChild(el("div",{style:{fontSize:"9px",color:vm.text}},"Promedio"));
+    const ab=el("div",{style:{textAlign:"center",background:"#fdf2f8",border:"1px solid #EC4899",borderRadius:"8px",padding:"5px 12px"}});
+    ab.appendChild(el("div",{style:{fontSize:"16px",fontWeight:"800",color:"#9D174D"}},avg+"%"));
+    ab.appendChild(el("div",{style:{fontSize:"9px",color:"#9D174D"}},"Promedio"));
     rr.appendChild(ab);
     if(scores.length>1){
       const tc=trend>0?"#085041":trend<0?"#991B1B":"#6b7280";
@@ -587,7 +612,7 @@ function downloadReport(r){
     const pct=calcPct(c.id,r);
     return'<tr><td colspan="2" style="background:'+c.bg+';padding:8px 10px;font-weight:700;font-size:12px;color:'+c.tc+';border-top:2px solid '+c.color+'">'+c.label+" / "+c.label_en+(pct!==null?" — "+pct+"%":"")+"</td></tr>"+items;
   }).join("");
-  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QA Report</title></head><body style="font-family:system-ui;max-width:740px;margin:0 auto;padding:30px;color:#111"><div style="display:flex;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #7F77DD"><div><div style="font-size:20px;font-weight:800;color:#7F77DD">Vamos Health QA</div><div style="font-size:14px;margin-top:4px">'+(r.repName||"")+'</div><div style="font-size:11px;color:#9ca3af">'+(r.date||"")+'</div></div><div style="background:'+vm.bg+';border:1px solid '+vm.border+';border-radius:10px;padding:12px 20px;text-align:center"><div style="font-size:32px;font-weight:800;color:'+vm.text+'">'+sc+'%</div><div style="font-size:11px;color:'+vm.text+'">'+vm.es+" / "+vm.en+'</div></div></div>'+(r.summary_es?'<div style="background:#f5f5f5;border-left:3px solid #7F77DD;padding:10px 14px;margin-bottom:20px;font-size:12px;line-height:1.7;color:#374151">'+r.summary_es+(r.summary_en?"<br><br><span style='color:#9ca3af'>"+r.summary_en+"</span>":"")+"</div>":"")+'<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'+rows+"</table>"+(r.coaching_es?'<div style="background:#EEEDF9;border:1px solid #7F77DD;border-radius:8px;padding:14px;font-size:12px;color:#3730A3;line-height:1.7"><strong>🎯 Coaching</strong><br><br>'+r.coaching_es+(r.coaching_en?"<br><br><em style='color:#4338CA'>"+r.coaching_en+"</em>":"")+"</div>":"")+'<div style="margin-top:28px;text-align:center;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:12px">Vamos Health QA · '+new Date().toLocaleDateString()+"</div></body></html>";
+  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QA Report</title></head><body style="font-family:system-ui;max-width:740px;margin:0 auto;padding:30px;color:#111"><div style="display:flex;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #EC4899"><div><div style="font-size:20px;font-weight:800;color:#EC4899">Vamos Health QA</div><div style="font-size:14px;margin-top:4px">'+(r.repName||"")+'</div><div style="font-size:11px;color:#9ca3af">'+(r.date||"")+'</div></div><div style="background:'+vm.bg+';border:1px solid '+vm.border+';border-radius:10px;padding:12px 20px;text-align:center"><div style="font-size:32px;font-weight:800;color:'+vm.text+'">'+sc+'%</div><div style="font-size:11px;color:'+vm.text+'">'+vm.es+" / "+vm.en+'</div></div></div>'+(r.summary_es?'<div style="background:#f5f5f5;border-left:3px solid #EC4899;padding:10px 14px;margin-bottom:20px;font-size:12px;line-height:1.7;color:#374151">'+r.summary_es+(r.summary_en?"<br><br><span style='color:#9ca3af'>"+r.summary_en+"</span>":"")+"</div>":"")+'<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'+rows+"</table>"+(r.coaching_es?'<div style="background:#fdf2f8;border:1px solid #EC4899;border-radius:8px;padding:14px;font-size:12px;color:#9D174D;line-height:1.7"><strong>🎯 Coaching</strong><br><br>'+r.coaching_es+(r.coaching_en?"<br><br><em style='color:#BE185D'>"+r.coaching_en+"</em>":"")+"</div>":"")+'<div style="margin-top:28px;text-align:center;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:12px">Vamos Health QA · '+new Date().toLocaleDateString()+"</div></body></html>";
   const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([html],{type:"text/html"}));
   a.download="VamosQA_"+((r.repName||"Rep").replace(/\\s+/g,"_"))+"_"+(r.date||"report")+".html";
