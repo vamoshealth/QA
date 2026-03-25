@@ -61,7 +61,7 @@ DISCOVERY (6 criteria):
 PRESENTATION (5 criteria):
 1. Presented AFTER discovering pain — did not pitch without understanding prospect first
 2. Translated benefits into specific dollar savings ("Labs outside = $200-$400, here they're included")
-3. Tailored solution to specific needs this prospect mentioned
+3. Tailored solution to this prospect's specific needs
 4. Simple clear language — no jargon, no info dump
 5. Active dialogue — check-in questions, not a monologue
 
@@ -143,16 +143,6 @@ JSON structure:
   }
 }`;
 
-const CATS_CONFIG = {
-  greeting:      { count: 4 },
-  discovery:     { count: 6 },
-  presentation:  { count: 5 },
-  objections:    { count: 5 },
-  closing:       { count: 5 },
-  rapport:       { count: 5 },
-  opportunities: { count: 6 }
-};
-
 const HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -182,23 +172,23 @@ const CATS=[
    es:["Se presentó con nombre completo y mencionó Vamos Health","Estableció valor inmediato en los primeros 10 segundos","Preguntó el nombre del prospecto y lo usó naturalmente","Tono cálido, profesional y seguro desde el inicio"],
    en:["Introduced with full name and mentioned Vamos Health","Established immediate value in first 10 seconds","Asked prospect's name and used it naturally","Warm, professional, confident tone from the start"]},
   {id:"discovery",label:"Descubrimiento",label_en:"Discovery",color:"#7F77DD",bg:"#EEEDFE",tc:"#3C3489",
-   es:["Preguntó sobre condiciones de salud (hipertensión, diabetes, colesterol)","Preguntó sobre estatus de seguro médico — pivote crítico de la presentación","Exploró situación familiar (cónyuge, hijos) — descuentos y chequeos escolares","Identificó el dolor INMEDIATO antes de presentar cualquier solución","Escucha activa — parafraseó o confirmó lo que escuchó","Preguntas basadas en respuestas del prospecto, no en un guión rígido"],
-   en:["Asked about health conditions (hypertension, diabetes, cholesterol)","Asked about insurance status — critical pitch pivot point","Explored family situation (spouse, kids) — unlocks discounts and school physicals","Identified IMMEDIATE pain before presenting anything","Active listening — paraphrased or confirmed what was heard","Follow-up questions based on prospect's answers, not a rigid script"]},
+   es:["Preguntó sobre condiciones de salud (hipertensión, diabetes, colesterol)","Preguntó sobre estatus de seguro médico — pivote crítico","Exploró situación familiar (cónyuge, hijos) — descuentos y chequeos escolares","Identificó el dolor INMEDIATO antes de presentar cualquier solución","Escucha activa — parafraseó o confirmó lo que escuchó","Preguntas basadas en respuestas del prospecto, no en un guión rígido"],
+   en:["Asked about health conditions (hypertension, diabetes, cholesterol)","Asked about insurance status — critical pitch pivot","Explored family situation (spouse, kids) — unlocks discounts and school physicals","Identified IMMEDIATE pain before presenting anything","Active listening — paraphrased or confirmed what was heard","Follow-up questions based on prospect's answers, not a rigid script"]},
   {id:"presentation",label:"Presentación",label_en:"Presentation",color:"#D4537E",bg:"#FBEAF0",tc:"#72243E",
    es:["Presentó DESPUÉS de descubrir el dolor — no lanzó el pitch sin entender primero","Tradujo beneficios a ahorros concretos en dólares ('Labs afuera = $200-$400, aquí incluidos')","Personalizó la solución a las necesidades específicas de este prospecto","Lenguaje simple y claro — sin jerga ni sobrecarga de información","Diálogo activo — hizo preguntas de verificación, no un monólogo unilateral"],
    en:["Presented AFTER discovering pain — did not pitch without understanding prospect first","Translated benefits into specific dollar savings ('Labs outside = $200-$400, here included')","Tailored solution to this prospect's specific needs","Simple clear language — no jargon, no info overload","Active dialogue — check-in questions, not a one-sided monologue"]},
   {id:"objections",label:"Objeciones",label_en:"Objections",color:"#D85A30",bg:"#FAECE7",tc:"#712B13",
-   es:["Recibió objeciones con calma — usó 'Entiendo', 'Tiene sentido', 'Eso es muy común'","Clarificó la objeción con una pregunta antes de responder","Respondió al precio con valor comparado vs costos externos — NO planes de pago (no existen en Vamos)","Usó herramientas en orden: valor → urgencia → bono de referido → descuento familiar → exención de inscripción (último recurso)","Confirmó que la objeción quedó resuelta antes de continuar"],
+   es:["Recibió objeciones con calma — usó 'Entiendo', 'Tiene sentido', 'Eso es muy común'","Clarificó la objeción con una pregunta antes de responder","Respondió al precio con valor vs costos externos — NO planes de pago (no existen en Vamos)","Usó herramientas en orden: valor → urgencia → referido → descuento familiar → exención inscripción (último recurso)","Confirmó que la objeción quedó resuelta antes de continuar"],
    en:["Received objections calmly — used 'Entiendo', 'Tiene sentido', 'Eso es muy común'","Clarified objection with a question before responding","Addressed price with value vs outside costs — NOT payment plans (don't exist at Vamos)","Used approved tools in order: value → urgency → referral bonus → family discount → fee waiver (last resort)","Confirmed objection was resolved before moving on"]},
   {id:"closing",label:"Cierre",label_en:"Closing",color:"#639922",bg:"#EAF3DE",tc:"#27500A",
-   es:["Pidió la venta directamente y con seguridad","Intentó cerrar por teléfono el mismo día — incluso cuando dijeron que necesitaban pensar","Usó técnica adecuada: asuntivo ('¿Con qué tarjeta?'), alternativa ('¿Hoy o mañana?'), urgencia ('Los cupos se llenan')","Ante dudas, profundizó con preguntas en vez de rendirse ('¿Qué es lo que le gustaría pensar?')","Aseguró próximo paso concreto con fecha y hora exactas — o cerró la venta. 'Hablamos pronto' = falla."],
-   en:["Asked for the sale directly and confidently","Attempted same-day phone close — even when prospect needed to think or talk to spouse","Used proper technique: assumptive ('¿Con qué tarjeta?'), alternative ('Today or tomorrow?'), urgency ('Spots fill up')","When hesitation arose, probed with questions instead of giving up","Secured concrete next step with exact date/time — or closed. 'Talk soon' = fail."]},
+   es:["Pidió la venta directamente y con seguridad","Intentó cerrar por teléfono el mismo día — incluso cuando dijeron que necesitaban pensar","Usó técnica adecuada: asuntivo, alternativa o urgencia","Ante dudas, profundizó con preguntas en vez de rendirse","Aseguró próximo paso concreto con fecha y hora — o cerró. 'Hablamos pronto' = falla."],
+   en:["Asked for the sale directly and confidently","Attempted same-day phone close — even when prospect needed to think","Used proper technique: assumptive, alternative, or urgency-based","When hesitation arose, probed with questions instead of giving up","Secured concrete next step with exact date/time — or closed. 'Talk soon' = fail."]},
   {id:"rapport",label:"Rapport (Toda la llamada)",label_en:"Rapport (Entire call)",color:"#378ADD",bg:"#E6F1FB",tc:"#0C447C",
-   es:["Tono empático y humano de principio a fin — no solo en el saludo","El prospecto se sintió escuchado y valorado — interés genuino en su vida","El prospecto habló MÁS que el rep — el rep escuchó y no dominó la conversación","Generó confianza con honestidad y transparencia — sin falsas promesas ni presión","Energía y calidez consistentes incluso ante objeciones o silencios"],
-   en:["Empathetic human tone from start to finish — not just greeting","Prospect felt heard and valued — genuine interest in their life","Prospect talked MORE than rep — rep listened and did not dominate","Trust built through honesty and transparency — no false promises or pressure","Energy and warmth consistent even through objections or silence"]},
+   es:["Tono empático y humano de principio a fin — no solo en el saludo","El prospecto se sintió escuchado y valorado","El prospecto habló MÁS que el rep","Generó confianza con honestidad — sin falsas promesas ni presión","Energía y calidez consistentes incluso ante objeciones o silencios"],
+   en:["Empathetic human tone from start to finish — not just greeting","Prospect felt heard and valued","Prospect talked MORE than the rep","Trust built through honesty — no false promises or pressure","Energy and warmth consistent even through objections or silence"]},
   {id:"opportunities",label:"Oportunidades Perdidas",label_en:"Missed Opportunities",color:"#888780",bg:"#F1EFE8",tc:"#2C2C2A",
-   es:["Señal de compra ignorada — el prospecto mostró interés y no se capitalizó","Oportunidad familiar perdida — mencionó cónyuge o hijos pero no se exploró plan familiar, descuentos o chequeos escolares","Dolor mencionado de pasada sin profundizar","Bono de $50 por referido no mencionado al cierre","Beneficios de Vamos Juntos no usados cuando el prospecto dudaba","Exención de inscripción no intentada cuando la llamada se cayó por el costo de inscripción"],
-   en:["Buying signal ignored — prospect showed interest and rep did not capitalize","Family opportunity missed — spouse or kids mentioned but family plan/discounts/school physicals not explored","Pain mentioned in passing but not explored","$50 referral bonus not mentioned at close","Vamos Juntos benefits not used when prospect was hesitant","Enrollment fee waiver not attempted when call died over enrollment fee"]}
+   es:["Señal de compra ignorada — interés no capitalizado","Oportunidad familiar perdida — cónyuge o hijos mencionados pero no se exploró plan familiar, descuentos o chequeos escolares","Dolor mencionado de pasada sin profundizar","Bono de $50 por referido no mencionado al cierre","Beneficios de Vamos Juntos no usados cuando el prospecto dudaba","Exención de inscripción no intentada cuando la llamada se cayó por el costo de inscripción"],
+   en:["Buying signal ignored — prospect interest not capitalized","Family opportunity missed — spouse or kids mentioned but family plan/discounts/school physicals not explored","Pain mentioned in passing but not explored","$50 referral bonus not mentioned at close","Vamos Juntos benefits not used when prospect was hesitant","Enrollment fee waiver not attempted when call died over enrollment fee"]}
 ];
 
 const VM={
@@ -313,14 +303,12 @@ function renderResult(wrap,r){
   vRight.appendChild(el("div",{style:{fontSize:"32px",fontWeight:"800",color:vm.text}},sc+"%"));
   vRight.appendChild(el("div",{style:{fontSize:"10px",color:vm.text}},"Overall"));
   vh.appendChild(vRight);wrap.appendChild(vh);
-
   if(r.summary_es||r.summary_en){
     const sb=el("div",{style:{background:"#f9fafb",borderLeft:"3px solid "+BRAND,padding:"10px 14px",borderRadius:"0 8px 8px 0",marginBottom:"14px",fontSize:"12px",lineHeight:"1.7",color:"#374151"}});
     if((state.lang==="both"||state.lang==="es")&&r.summary_es)sb.appendChild(el("div",null,r.summary_es));
     if((state.lang==="both"||state.lang==="en")&&r.summary_en)sb.appendChild(el("div",{style:{color:"#6b7280",marginTop:"4px"}},r.summary_en));
     wrap.appendChild(sb);
   }
-
   const grid=el("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"7px",marginBottom:"14px"}});
   CATS.filter(c=>c.id!=="opportunities").forEach(c=>{
     const pct=calcPct(c.id,r);
@@ -330,7 +318,6 @@ function renderResult(wrap,r){
     grid.appendChild(card);
   });
   wrap.appendChild(grid);
-
   CATS.forEach(c=>{
     const catData=r.categories?.[c.id];
     if(!catData)return;
@@ -367,7 +354,6 @@ function renderResult(wrap,r){
     });
     box.appendChild(body);wrap.appendChild(box);
   });
-
   if(r.coaching_es||r.coaching_en){
     const cb=el("div",{style:{background:"#EEEDF9",border:"1px solid "+BRAND,borderRadius:"10px",padding:"13px 15px",marginTop:"4px"}});
     cb.appendChild(el("div",{style:{fontWeight:"700",fontSize:"13px",color:"#3730A3",marginBottom:"7px"}},"🎯 Coaching"));
@@ -375,7 +361,6 @@ function renderResult(wrap,r){
     if((state.lang==="both"||state.lang==="en")&&r.coaching_en)cb.appendChild(el("div",{style:{fontSize:"12px",color:"#4338CA",lineHeight:"1.7"}},r.coaching_en));
     wrap.appendChild(cb);
   }
-
   wrap.appendChild(el("button",{style:{width:"100%",marginTop:"14px",background:BRAND,color:"#fff",border:"none",borderRadius:"8px",padding:"10px 0",fontSize:"13px",fontWeight:"700"},onClick:()=>downloadReport(r)},"⬇ Download Report"));
 }
 
@@ -452,8 +437,8 @@ const server = http.createServer((req, res) => {
           return;
         }
         const payload = JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 3000,
+          model: "claude-sonnet-4-6",
+          max_tokens: 6000,
           system: SYSTEM_PROMPT,
           messages: [{ role: "user", content: (repName ? `Rep name: ${repName}\n\n` : "") + "Transcript:\n" + transcript }]
         });
