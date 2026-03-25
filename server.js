@@ -200,32 +200,7 @@ JSON structure:
   }
 }`;
 
-const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" width="36" height="36">
-  <g transform="translate(600,600)">
-    <polygon points="0,-280 66,-66 280,0 66,66 0,280 -66,66 -280,0 -66,-66" fill="white" opacity="0"/>
-    <g>
-      <polygon points="0,-380 90,-90 380,0 90,90 0,380 -90,90 -380,0 -90,-90" fill="none"/>
-      <!-- Pink diamonds -->
-      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(0)"/>
-      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(45)"/>
-      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(90)"/>
-      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(135)"/>
-      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(180)"/>
-      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(225)"/>
-      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(270)"/>
-      <polygon points="-160,-380 0,-220 160,-380 0,-540" fill="#EC4899" transform="rotate(315)"/>
-      <!-- Gold arrows -->
-      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(0)"/>
-      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(45)"/>
-      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(90)"/>
-      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(135)"/>
-      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(180)"/>
-      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(225)"/>
-      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(270)"/>
-      <polygon points="0,-480 -80,-280 0,-320 80,-280" fill="#F59E0B" transform="rotate(315)"/>
-    </g>
-  </g>
-</svg>`;
+const LOGO_BADGE = `<div style="background:#EC4899;padding:10px 18px;border-radius:10px;text-align:center;display:inline-block"><div style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1.2">Vamos Health</div><div style="font-size:8px;font-weight:600;color:rgba(255,255,255,.75);letter-spacing:3px;margin-top:1px">MEDICAL GROUP</div></div>`;
 
 // ─── HTML ─────────────────────────────────────────────────────────────────────
 function buildHTML(appPassword) {
@@ -252,11 +227,8 @@ function buildHTML(appPassword) {
 <body>
 <div id="lock" style="position:fixed;inset:0;background:#f9fafb;display:flex;align-items:center;justify-content:center;z-index:999">
   <div style="background:#fff;border-radius:16px;padding:36px 32px;border:1px solid #e5e7eb;width:100%;max-width:340px;text-align:center">
-    <div style="width:56px;height:56px;background:#fff3f8;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;border:1px solid #fce7f3">
-      ${LOGO_SVG}
-    </div>
-    <div style="font-weight:800;font-size:18px;margin-bottom:4px;color:#111827">Vamos Health QA</div>
-    <div style="font-size:12px;color:#9ca3af;margin-bottom:24px">Ingresa la contraseña del equipo</div>
+    <div style="margin:0 auto 20px">${LOGO_BADGE}</div>
+    <div style="font-size:13px;color:#9ca3af;margin-bottom:24px">Ingresa la contraseña del equipo</div>
     <input id="pw" type="password" placeholder="Contraseña..." style="margin-bottom:12px;text-align:center"/>
     <button onclick="tryLogin()" style="width:100%;padding:10px 0;background:#EC4899;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700">Entrar</button>
     <div id="pw-err" style="color:#EF4444;font-size:12px;margin-top:8px;display:none">Contraseña incorrecta</div>
@@ -266,7 +238,7 @@ function buildHTML(appPassword) {
 <script>
 const CORRECT_PW = ${JSON.stringify(appPassword)};
 const BRAND = "#EC4899";
-const LOGO_HTML = ${JSON.stringify(`<div style="width:36px;height:36px;background:#fff3f8;border-radius:9px;display:flex;align-items:center;justify-content:center;border:1px solid #fce7f3;flex-shrink:0">${LOGO_SVG}</div>`)};
+const LOGO_HTML = ${JSON.stringify(`<div style="background:#EC4899;padding:6px 14px;border-radius:8px;text-align:center"><div style="font-size:13px;font-weight:800;color:#fff;letter-spacing:-0.3px;line-height:1.2">Vamos Health</div><div style="font-size:7px;font-weight:600;color:rgba(255,255,255,.75);letter-spacing:2.5px">MEDICAL GROUP</div></div>`)};
 
 document.getElementById("pw").addEventListener("keydown", e => { if(e.key==="Enter") tryLogin(); });
 
@@ -358,7 +330,7 @@ function render(){
   hLeft.appendChild(logoEl.firstChild);
   const ht=el("div");
   ht.appendChild(el("div",{style:{fontWeight:"800",fontSize:"15px"}},"Vamos Health QA"));
-  ht.appendChild(el("div",{style:{fontSize:"11px",color:"#9ca3af"}},"Sales Call Analyzer"));
+  ht.appendChild(el("div",{style:{fontSize:"11px",color:"#9ca3af"}},"Sales Call Analyzer — QA System"));
   hLeft.appendChild(ht);hdr.appendChild(hLeft);
   const ls=el("select",{style:{width:"auto",fontSize:"11px",padding:"4px 8px",borderRadius:"6px",border:"1px solid #e5e7eb"},onChange:e=>{state.lang=e.target.value;render();}});
   [["both","ES + EN"],["es","Solo Español"],["en","English only"]].forEach(([v,t])=>{const o=el("option",{value:v},t);if(v===state.lang)o.selected=true;ls.appendChild(o);});
