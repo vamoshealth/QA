@@ -665,7 +665,7 @@ const server = http.createServer((req, res) => {
           model: "claude-sonnet-4-6",
           max_tokens: 6000,
           system: SYSTEM_PROMPT,
-          messages: [{ role: "user", content: (repName ? `Rep name: ${repName}\n` : "") + (team ? `Team: ${team}\n` : "") + "\nTranscript:\n" + transcript }]
+          messages: [{ role: "user", content: (repName ? `Rep name: ${repName}\n` : "") + (team ? `Team: ${team}\n` : "") + "\nTranscript:\n" + transcript.slice(0, 12000) }]
         });
         const options = {
           hostname: "api.anthropic.com", path: "/v1/messages", method: "POST",
