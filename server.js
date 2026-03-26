@@ -25,7 +25,7 @@ function getDbClient() {
           created_at TIMESTAMP DEFAULT NOW()
         )
       `).then(() => {
-        return client.query(`ALTER TABLE qa_results ADD COLUMN IF NOT EXISTS team TEXT`).catch(()=>{});
+        return client.query(`ALTER TABLE qa_results ADD COLUMN IF NOT EXISTS team TEXT`).catch(() => {});
       }).then(() => client);
     });
   } catch (e) { return Promise.resolve(null); }
@@ -103,56 +103,56 @@ OBJECTION TOOLS (in order — Vamos does NOT have payment plans, never penalize 
 2. Urgency (limited spots)
 3. Referral bonus ($50 immediate ROI)
 4. Family discount codes
-5. Enrollment fee waiver — LAST RESORT ONLY when call is dying over enrollment fee. Not scored but mention in coaching if missed.
+5. Enrollment fee waiver — LAST RESORT ONLY. Not scored but mention in coaching if missed.
 
 SCORING: Evaluate each criterion as "pass", "fail", or "na". Be strict on Discovery, Value Framing, and Closing.
 
 GREETING (4 criteria):
 1. Introduced themselves with a name (first name is sufficient) and mentioned Vamos Health
-2. Established the purpose of the call clearly within the first 20 seconds — clarity and direction, not necessarily a hard sales hook
+2. Established the purpose of the call clearly within the first 20 seconds
 3. Asked for the prospect's name and used it naturally during the call
 4. Set a warm, professional, and confident tone from the very first seconds
 
 DISCOVERY (6 criteria):
-1. Asked about any health concerns or conditions — this includes ANY primary care topic: chronic conditions, recent symptoms, medications, pain, preventive needs, mental health, women's health, skin issues, or anything health-related. Score "fail" if rep never asked about health at all.
-2. Asked about insurance status — critical pivot (no insurance = Core pitch; has insurance = Vital/complement pitch)
-3. Explored family situation (spouse, children) — score "pass" if explored, "fail" if not explored at all, "na" only if prospect clearly lives alone with no family context
+1. Asked about any health concerns or conditions (ANY primary care topic counts)
+2. Asked about insurance status — critical pivot point
+3. Explored family situation (spouse, children) — "pass" if explored, "fail" if not, "na" only if prospect clearly has no family
 4. Identified the prospect's IMMEDIATE pain or need before presenting anything
 5. Active listening — paraphrased, reflected, or confirmed what the prospect said
 6. Follow-up questions based on the prospect's answers, not a rigid script
 
 PRESENTATION (5 criteria):
-1. Presented AFTER discovering pain — did not pitch without understanding prospect first
-2. Translated benefits into specific dollar savings ("Labs outside = $200-$400, here they're included")
+1. Presented AFTER discovering pain
+2. Translated benefits into specific dollar savings ("Labs outside = $200-$400, here included")
 3. Tailored solution to this prospect's specific needs
-4. Simple clear language — no jargon, no info dump
+4. Simple clear language — no jargon
 5. Active dialogue — check-in questions, not a monologue
 
 OBJECTIONS (5 criteria):
-1. Received objections calmly — used "Entiendo", "Tiene sentido", "Eso es muy común"
+1. Received objections calmly — used "Entiendo", "Tiene sentido"
 2. Clarified objection with a question before responding
-3. Addressed price with value anchoring vs outside costs — NOT payment plans (don't exist at Vamos)
-4. Used approved tools in order: value anchoring → urgency → referral bonus → family discount
+3. Addressed price with value anchoring — NOT payment plans
+4. Used approved tools in order: value → urgency → referral bonus → family discount
 5. Confirmed objection was resolved before moving on
 
 CLOSING (5 criteria):
 1. Asked for the sale directly and confidently
-2. Attempted same-day phone close — even when prospect said they needed to think or talk to spouse
-3. Used proper technique: assumptive ("¿Con qué tarjeta?"), alternative ("¿Hoy o mañana?"), or urgency ("Los cupos se llenan")
+2. Attempted same-day phone close
+3. Used proper technique: assumptive, alternative, or urgency-based
 4. When hesitation arose, probed with questions instead of giving up
-5. Secured concrete next step with exact date and time — or closed. "Hablamos pronto" = fail.
+5. Secured concrete next step with exact date and time. "Hablamos pronto" = fail.
 
 RAPPORT — ENTIRE CALL (5 criteria):
-1. Empathetic human tone from start to finish — not just greeting
-2. Prospect felt heard and valued — genuine interest in their life
-3. Prospect talked MORE than rep — rep listened, did not dominate
-4. Trust built through honesty and transparency — no false promises
-5. Energy and warmth consistent even through objections or silence
+1. Empathetic human tone from start to finish
+2. Prospect felt heard and valued
+3. Prospect talked MORE than rep
+4. Trust built through honesty — no false promises
+5. Energy and warmth consistent even through objections
 
 MISSED OPPORTUNITIES (4 criteria — "fail"=missed, "pass"=handled or not applicable):
-1. Buying signal ignored — interest shown but not capitalized on
-2. Family opportunity missed — spouse or kids mentioned but family plan/discounts/school physicals not explored
-3. Pain mentioned in passing but not explored deeper
+1. Buying signal ignored
+2. Family opportunity missed — spouse or kids mentioned but not explored
+3. Pain mentioned in passing but not explored
 4. $50 referral bonus not mentioned at close
 
 FEEDBACK FORMAT — every "fail" note must:
@@ -160,48 +160,37 @@ FEEDBACK FORMAT — every "fail" note must:
 2. Give word-for-word script of what rep should have said
 3. Include a real sales stat with source
 
-SALES STATS TO USE:
-- 4+ discovery questions before presenting = 43% more closes. (RAIN Group, 2023)
-- Prospects who verbalize pain are 2.4x more likely to buy. (Gong.io, 2022)
-- Price anchoring increases perceived value by 40%. (Journal of Consumer Psychology)
-- Specific next step = 3x better conversion than open follow-up. (HubSpot, 2023)
-- Rep talks less than 40% of call = 54% more closes. (Gong.io, 2021)
-- Mentioning referral bonus at close increases referral rates 45%. (Wharton School of Business)
-- Same-day phone close attempt = 67% more conversions. (InsideSales.com)
-- Personalized pitch = 36% higher close rate. (Salesforce, 2023)
-- Handling objections with questions retains 70% of hesitant prospects. (Richardson Sales Training)
+SALES STATS: 4+ discovery questions=43% more closes (RAIN Group 2023). Prospects who verbalize pain=2.4x more likely to buy (Gong.io 2022). Price anchoring increases perceived value 40% (Journal of Consumer Psychology). Specific next step=3x better conversion (HubSpot 2023). Rep talks <40% of call=54% more closes (Gong.io 2021). Referral bonus at close=45% more referrals (Wharton). Same-day close attempt=67% more conversions (InsideSales.com). Personalized pitch=36% higher close rate (Salesforce 2023). Objections handled with questions=70% retention (Richardson Sales Training).
 
-COACHING SUMMARY STRUCTURE (in both Spanish and English):
-1. Lo que hiciste bien / What you did well — 1-2 genuine specific wins from this call
-2. Tus 3 áreas de enfoque / Your 3 focus areas — the 3 most impactful gaps, each with: exact moment + word-for-word script + sales stat
-3. Lo que esto impacta / What this impacts — one sentence connecting performance to closes, retention, reactivations
+COACHING SUMMARY (both Spanish and English):
+1. Lo que hiciste bien — 1-2 specific wins from this call
+2. Tus 3 áreas de enfoque — 3 most impactful gaps: exact moment + word-for-word script + sales stat
+3. Lo que esto impacta — one sentence connecting to closes, retention, reactivations
 
-Tone: Direct, respectful, like a coach who wants them to win. Always tie behavior to business outcome.
+Tone: Direct, respectful, coach who wants them to win. Tie behavior to business outcome.
 
-IMPORTANT: Respond with ONLY a valid JSON object. No markdown. No code blocks. Start with { and end with }.
-Verdict: "strong" if pass rate>=80%, "needs coaching" 60-79%, "critical gaps" below 60%.
+IMPORTANT: Respond with ONLY valid JSON. No markdown. No code blocks. Start with { end with }.
+Verdict: "strong">=80%, "needs coaching" 60-79%, "critical gaps"<60%.
 
-JSON structure:
 {
   "repName": "",
-  "summary_es": "2-3 sentences: what happened, what worked, critical gap",
-  "summary_en": "2-3 sentences: what happened, what worked, critical gap",
+  "summary_es": "2-3 sentences",
+  "summary_en": "2-3 sentences",
   "verdict": "needs coaching",
-  "coaching_es": "Structured: (1) Lo que hiciste bien, (2) 3 áreas de enfoque con scripts y estadísticas, (3) Lo que esto impacta",
-  "coaching_en": "Structured: (1) What you did well, (2) 3 focus areas with scripts and stats, (3) What this impacts",
+  "coaching_es": "Structured coaching in Spanish",
+  "coaching_en": "Structured coaching in English",
   "categories": {
-    "greeting":      { "scores": ["na","na","na","na"],            "notes_es": ["","","",""],            "notes_en": ["","","",""] },
-    "discovery":     { "scores": ["na","na","na","na","na","na"],  "notes_es": ["","","","","",""],      "notes_en": ["","","","","",""] },
-    "presentation":  { "scores": ["na","na","na","na","na"],       "notes_es": ["","","","",""],         "notes_en": ["","","","",""] },
-    "objections":    { "scores": ["na","na","na","na","na"],       "notes_es": ["","","","",""],         "notes_en": ["","","","",""] },
-    "closing":       { "scores": ["na","na","na","na","na"],       "notes_es": ["","","","",""],         "notes_en": ["","","","",""] },
-    "rapport":       { "scores": ["na","na","na","na","na"],       "notes_es": ["","","","",""],         "notes_en": ["","","","",""] },
-    "opportunities": { "scores": ["na","na","na","na"],            "notes_es": ["","","",""],            "notes_en": ["","","",""] }
+    "greeting":      { "scores": ["na","na","na","na"],           "notes_es": ["","","",""],           "notes_en": ["","","",""] },
+    "discovery":     { "scores": ["na","na","na","na","na","na"], "notes_es": ["","","","","",""],     "notes_en": ["","","","","",""] },
+    "presentation":  { "scores": ["na","na","na","na","na"],      "notes_es": ["","","","",""],        "notes_en": ["","","","",""] },
+    "objections":    { "scores": ["na","na","na","na","na"],      "notes_es": ["","","","",""],        "notes_en": ["","","","",""] },
+    "closing":       { "scores": ["na","na","na","na","na"],      "notes_es": ["","","","",""],        "notes_en": ["","","","",""] },
+    "rapport":       { "scores": ["na","na","na","na","na"],      "notes_es": ["","","","",""],        "notes_en": ["","","","",""] },
+    "opportunities": { "scores": ["na","na","na","na"],           "notes_es": ["","","",""],           "notes_en": ["","","",""] }
   }
 }`;
 
 const TEAMS = ["GDL","West Valley","Arizona 1","Arizona 2","Orem","Team Mana"];
-
 const LOGO_BADGE = `<div style="background:#EC4899;padding:10px 18px;border-radius:10px;text-align:center;display:inline-block"><div style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1.2">Vamos Health</div><div style="font-size:8px;font-weight:600;color:rgba(255,255,255,.75);letter-spacing:3px;margin-top:1px">MEDICAL GROUP</div></div>`;
 const LOGO_SMALL = `<div style="background:#EC4899;padding:6px 14px;border-radius:8px;text-align:center"><div style="font-size:13px;font-weight:800;color:#fff;letter-spacing:-0.3px;line-height:1.2">Vamos Health</div><div style="font-size:7px;font-weight:600;color:rgba(255,255,255,.75);letter-spacing:2.5px">MEDICAL GROUP</div></div>`;
 
@@ -238,44 +227,44 @@ function buildHTML(appPassword) {
 </div>
 <div id="app" style="max-width:680px;margin:0 auto;padding:16px 12px;min-height:100vh;display:none"></div>
 <script>
-const CORRECT_PW = ${JSON.stringify(appPassword)};
-const BRAND = "#EC4899";
-const TEAMS = ${JSON.stringify(TEAMS)};
-const LOGO_HTML = ${JSON.stringify(LOGO_SMALL)};
+const CORRECT_PW=${JSON.stringify(appPassword)};
+const BRAND="#EC4899";
+const TEAMS=${JSON.stringify(TEAMS)};
+const LOGO_HTML=${JSON.stringify(LOGO_SMALL)};
 
-document.getElementById("pw").addEventListener("keydown", e => { if(e.key==="Enter") tryLogin(); });
-function tryLogin() {
-  const val = document.getElementById("pw").value;
-  if(val === CORRECT_PW) {
-    sessionStorage.setItem("vamos_auth", val);
-    document.getElementById("lock").style.display = "none";
-    document.getElementById("app").style.display = "block";
+document.getElementById("pw").addEventListener("keydown",e=>{if(e.key==="Enter")tryLogin();});
+function tryLogin(){
+  const val=document.getElementById("pw").value;
+  if(val===CORRECT_PW){
+    sessionStorage.setItem("vamos_auth",val);
+    document.getElementById("lock").style.display="none";
+    document.getElementById("app").style.display="block";
     render();
   } else {
-    document.getElementById("pw-err").style.display = "block";
+    document.getElementById("pw-err").style.display="block";
   }
 }
-(function() {
-  const saved = sessionStorage.getItem("vamos_auth");
-  if(saved === CORRECT_PW) {
-    document.getElementById("lock").style.display = "none";
-    document.getElementById("app").style.display = "block";
+(function(){
+  const saved=sessionStorage.getItem("vamos_auth");
+  if(saved===CORRECT_PW){
+    document.getElementById("lock").style.display="none";
+    document.getElementById("app").style.display="block";
   }
 })();
 
 const CATS=[
   {id:"greeting",label:"Saludo",label_en:"Greeting",color:"#5DCAA5",bg:"#E1F5EE",tc:"#085041",
-   es:["Se presentó con un nombre y mencionó Vamos Health","Estableció el propósito de la llamada en los primeros 20 segundos","Preguntó el nombre del prospecto y lo usó naturalmente","Tono cálido, profesional y seguro desde el inicio"],
-   en:["Introduced with a name and mentioned Vamos Health","Established purpose of the call within the first 20 seconds","Asked prospect's name and used it naturally","Warm, professional, confident tone from the start"]},
+   es:["Se presentó con un nombre y mencionó Vamos Health","Estableció el propósito en los primeros 20 segundos","Preguntó el nombre del prospecto y lo usó naturalmente","Tono cálido, profesional y seguro desde el inicio"],
+   en:["Introduced with a name and mentioned Vamos Health","Established purpose within the first 20 seconds","Asked prospect's name and used it naturally","Warm, professional, confident tone from the start"]},
   {id:"discovery",label:"Descubrimiento",label_en:"Discovery",color:"#EC4899",bg:"#FDF2F8",tc:"#9D174D",
-   es:["Preguntó sobre cualquier preocupación o condición de salud (cualquier tema de atención primaria)","Preguntó sobre estatus de seguro médico — pivote crítico","Exploró situación familiar (cónyuge, hijos) — fail si no se exploró","Identificó el dolor INMEDIATO antes de presentar","Escucha activa — parafraseó o confirmó lo que escuchó","Preguntas basadas en respuestas del prospecto, no en guión"],
-   en:["Asked about any health concerns or conditions (any primary care topic)","Asked about insurance status — critical pitch pivot","Explored family situation (spouse, kids) — fail if not explored","Identified IMMEDIATE pain before presenting anything","Active listening — paraphrased or confirmed what was heard","Follow-up questions based on prospect's answers, not a script"]},
+   es:["Preguntó sobre cualquier preocupación de salud (cualquier tema de atención primaria)","Preguntó sobre estatus de seguro médico — pivote crítico","Exploró situación familiar — fail si no se exploró","Identificó el dolor INMEDIATO antes de presentar","Escucha activa — parafraseó o confirmó lo escuchado","Preguntas basadas en respuestas del prospecto, no en guión"],
+   en:["Asked about any health concerns (any primary care topic)","Asked about insurance status — critical pivot","Explored family situation — fail if not explored","Identified IMMEDIATE pain before presenting","Active listening — paraphrased or confirmed what was heard","Follow-up questions based on prospect's answers, not a script"]},
   {id:"presentation",label:"Presentación",label_en:"Presentation",color:"#D4537E",bg:"#FBEAF0",tc:"#72243E",
-   es:["Presentó DESPUÉS de descubrir el dolor","Tradujo beneficios a ahorros concretos en dólares","Personalizó la solución a las necesidades específicas","Lenguaje simple y claro — sin jerga","Diálogo activo — no un monólogo"],
+   es:["Presentó DESPUÉS de descubrir el dolor","Tradujo beneficios a ahorros en dólares concretos","Personalizó la solución a las necesidades específicas","Lenguaje simple y claro — sin jerga","Diálogo activo — no un monólogo"],
    en:["Presented AFTER discovering pain","Translated benefits into specific dollar savings","Tailored solution to prospect's specific needs","Simple clear language — no jargon","Active dialogue — not a monologue"]},
   {id:"objections",label:"Objeciones",label_en:"Objections",color:"#D85A30",bg:"#FAECE7",tc:"#712B13",
-   es:["Recibió objeciones con calma — 'Entiendo', 'Tiene sentido'","Clarificó la objeción antes de responder","Respondió al precio con valor — NO planes de pago","Usó herramientas: valor → urgencia → referido → descuento familiar","Confirmó resolución antes de continuar"],
-   en:["Received objections calmly — 'Entiendo', 'Tiene sentido'","Clarified objection before responding","Addressed price with value — NOT payment plans","Used tools: value → urgency → referral bonus → family discount","Confirmed objection resolved before moving on"]},
+   es:["Recibió objeciones con calma","Clarificó la objeción antes de responder","Respondió al precio con valor — NO planes de pago","Usó herramientas: valor → urgencia → referido → descuento","Confirmó resolución antes de continuar"],
+   en:["Received objections calmly","Clarified objection before responding","Addressed price with value — NOT payment plans","Used tools: value → urgency → referral → discount","Confirmed objection resolved before moving on"]},
   {id:"closing",label:"Cierre",label_en:"Closing",color:"#639922",bg:"#EAF3DE",tc:"#27500A",
    es:["Pidió la venta directamente","Intentó cerrar el mismo día por teléfono","Usó técnica: asuntivo, alternativa o urgencia","Ante dudas profundizó con preguntas","Aseguró próximo paso concreto — 'Hablamos pronto' = falla"],
    en:["Asked for the sale directly","Attempted same-day phone close","Used proper technique: assumptive, alternative, or urgency","Probed with questions when hesitation arose","Secured concrete next step — 'Talk soon' = fail"]},
@@ -283,8 +272,8 @@ const CATS=[
    es:["Tono empático de principio a fin","El prospecto se sintió escuchado y valorado","El prospecto habló MÁS que el rep","Confianza con honestidad — sin falsas promesas","Energía consistente incluso ante objeciones"],
    en:["Empathetic tone from start to finish","Prospect felt heard and valued","Prospect talked MORE than the rep","Trust through honesty — no false promises","Energy consistent even through objections"]},
   {id:"opportunities",label:"Oportunidades Perdidas",label_en:"Missed Opportunities",color:"#888780",bg:"#F1EFE8",tc:"#2C2C2A",
-   es:["Señal de compra ignorada — interés no capitalizado","Oportunidad familiar perdida — no se exploró plan, descuentos o chequeos escolares","Dolor mencionado de pasada sin profundizar","Bono de $50 por referido no mencionado al cierre"],
-   en:["Buying signal ignored — prospect interest not capitalized","Family opportunity missed — plan/discounts/school physicals not explored","Pain mentioned in passing but not explored","$50 referral bonus not mentioned at close"]}
+   es:["Señal de compra ignorada","Oportunidad familiar perdida — no se exploró plan o descuentos","Dolor mencionado de pasada sin profundizar","Bono de $50 por referido no mencionado al cierre"],
+   en:["Buying signal ignored","Family opportunity missed — plan or discounts not explored","Pain mentioned but not explored","$50 referral bonus not mentioned at close"]}
 ];
 
 const VM={
@@ -308,7 +297,6 @@ function overallPct(r){
   });
   return t>0?Math.round(p/t*100):0;
 }
-
 function el(tag,attrs,children){
   const e=document.createElement(tag);
   if(attrs)Object.entries(attrs).forEach(([k,v])=>{
@@ -324,7 +312,6 @@ function el(tag,attrs,children){
 function render(){
   const app=document.getElementById("app");
   app.innerHTML="";
-  // Header
   const hdr=el("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}});
   const hLeft=el("div",{style:{display:"flex",alignItems:"center",gap:"10px"}});
   const logoEl=document.createElement("div");logoEl.innerHTML=LOGO_HTML;hLeft.appendChild(logoEl.firstChild);
@@ -334,7 +321,6 @@ function render(){
   const ls=el("select",{style:{width:"auto",fontSize:"11px",padding:"4px 8px",borderRadius:"6px",border:"1px solid #e5e7eb"},onChange:e=>{state.lang=e.target.value;render();}});
   [["both","ES + EN"],["es","Solo Español"],["en","English only"]].forEach(([v,t])=>{const o=el("option",{value:v},t);if(v===state.lang)o.selected=true;ls.appendChild(o);});
   hdr.appendChild(ls);app.appendChild(hdr);
-  // Tabs
   const tb=el("div",{style:{display:"flex",gap:"4px",marginBottom:"16px",background:"#ececec",borderRadius:"9px",padding:"4px"}});
   [["analyze","Analizar"],["history","Historial"],["trends","Tendencias"],...(state.viewing?[["view","Reporte"]]:[])]
     .forEach(([id,label])=>{
@@ -355,33 +341,28 @@ function render(){
 function loadHistory(){
   if(state.histLoading)return;
   state.histLoading=true;
-  const url="/api/history?rep="+encodeURIComponent(state.filterRep)+"&team="+encodeURIComponent(state.filterTeam);
-  fetch(url).then(r=>r.json()).then(rows=>{
-    state.hist=rows.map(r=>({...JSON.parse(r.result_json),_dbid:r.id,_created:r.created_at,_team:r.team}));
-    state.histLoading=false;render();
-  }).catch(()=>{state.histLoading=false;});
+  fetch("/api/history?rep="+encodeURIComponent(state.filterRep)+"&team="+encodeURIComponent(state.filterTeam))
+    .then(r=>r.json()).then(rows=>{
+      state.hist=rows.map(r=>({...JSON.parse(r.result_json),_dbid:r.id,_created:r.created_at,_team:r.team}));
+      state.histLoading=false;render();
+    }).catch(()=>{state.histLoading=false;});
 }
 
 function renderAnalyze(app){
   const wrap=el("div",{style:{background:"#fff",borderRadius:"12px",padding:"16px",border:"1px solid #e5e7eb"}});
-
-  // Row 1: Rep + Team
   const grid1=el("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"12px"}});
   const rw=el("div");rw.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Nombre del Rep"));
   rw.appendChild(el("input",{type:"text",placeholder:"Ej. Maria Garcia",value:state.rep,onInput:e=>state.rep=e.target.value}));
   const tw=el("div");tw.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Equipo / Team"));
   const teamSel=el("select",{onChange:e=>state.team=e.target.value});
-  const defOpt=el("option",{value:""},"Seleccionar equipo...");teamSel.appendChild(defOpt);
+  teamSel.appendChild(el("option",{value:""},"Seleccionar equipo..."));
   TEAMS.forEach(t=>{const o=el("option",{value:t},t);if(t===state.team)o.selected=true;teamSel.appendChild(o);});
   tw.appendChild(teamSel);
   grid1.appendChild(rw);grid1.appendChild(tw);wrap.appendChild(grid1);
-
-  // Row 2: Date
-  const grid2=el("div",{style:{marginBottom:"12px"}});
-  const dw=el("div",{style:{maxWidth:"50%"}});dw.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Fecha"));
+  const dw=el("div",{style:{maxWidth:"50%",marginBottom:"12px"}});
+  dw.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Fecha"));
   dw.appendChild(el("input",{type:"date",value:state.date,onInput:e=>state.date=e.target.value}));
-  grid2.appendChild(dw);wrap.appendChild(grid2);
-
+  wrap.appendChild(dw);
   wrap.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Transcripción de la llamada"));
   wrap.appendChild(el("textarea",{placeholder:"Pega la transcripción aquí (español o inglés)...",style:{width:"100%",minHeight:"180px",resize:"vertical",borderRadius:"8px",border:"1px solid #e5e7eb",padding:"10px 12px",fontSize:"13px",lineHeight:"1.6",marginBottom:"12px",outline:"none",fontFamily:"inherit"},onInput:e=>state.tx=e.target.value},state.tx));
   wrap.appendChild(el("button",{style:{width:"100%",padding:"11px 0",background:state.loading||!state.tx.trim()?"#e5e7eb":BRAND,color:state.loading||!state.tx.trim()?"#9ca3af":"#fff",border:"none",borderRadius:"8px",fontSize:"14px",fontWeight:"700"},onClick:doAnalyze},state.loading?"⏳ Analizando…":"Analizar Llamada"));
@@ -475,16 +456,14 @@ function renderResult(wrap,r){
 }
 
 function renderHistory(app){
-  // Filters row
   const filterRow=el("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:"8px",marginBottom:"12px",alignItems:"center"}});
   const repIn=el("input",{type:"text",placeholder:"Filtrar por rep…",value:state.filterRep,onInput:e=>{state.filterRep=e.target.value;state.histLoading=false;loadHistory();}});
   const teamSel=el("select",{onChange:e=>{state.filterTeam=e.target.value;state.histLoading=false;loadHistory();}});
-  const allOpt=el("option",{value:""},"Todos los equipos");teamSel.appendChild(allOpt);
+  teamSel.appendChild(el("option",{value:""},"Todos los equipos"));
   TEAMS.forEach(t=>{const o=el("option",{value:t},t);if(t===state.filterTeam)o.selected=true;teamSel.appendChild(o);});
   filterRow.appendChild(repIn);filterRow.appendChild(teamSel);
   filterRow.appendChild(el("button",{style:{padding:"8px 14px",background:"#fff",border:"1px solid #e5e7eb",borderRadius:"7px",fontSize:"12px",fontWeight:"600",color:"#374151",whiteSpace:"nowrap"},onClick:exportCSV},"⬇ CSV"));
   app.appendChild(filterRow);
-
   if(state.histLoading){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px",fontSize:"13px"}},"Cargando…"));return;}
   if(!state.hist.length){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px",fontSize:"13px"}},"No hay llamadas aún."));return;}
   state.hist.forEach(h=>{
@@ -493,10 +472,10 @@ function renderHistory(app){
     const left=el("div");
     left.appendChild(el("div",{style:{fontWeight:"700",fontSize:"13px"}},h.repName||"Unknown"));
     const meta=el("div",{style:{fontSize:"11px",color:"#9ca3af",marginTop:"2px"}});
-    if(h.team||h._team)meta.appendChild(el("span",{style:{background:"#fdf2f8",color:"#9D174D",borderRadius:"4px",padding:"1px 6px",fontSize:"10px",fontWeight:"600",marginRight:"6px"}},h.team||h._team));
+    const teamName=h.team||h._team;
+    if(teamName)meta.appendChild(el("span",{style:{background:"#fdf2f8",color:"#9D174D",borderRadius:"4px",padding:"1px 6px",fontSize:"10px",fontWeight:"600",marginRight:"6px"}},teamName));
     meta.appendChild(el("span",null,h.date||""));
-    left.appendChild(meta);
-    row.appendChild(left);
+    left.appendChild(meta);row.appendChild(left);
     const right=el("div",{style:{display:"flex",alignItems:"center",gap:"10px"}});
     const vb=el("div",{style:{background:vm.bg,border:"1px solid "+vm.border,borderRadius:"7px",padding:"5px 12px",textAlign:"center"}});
     vb.appendChild(el("div",{style:{fontSize:"17px",fontWeight:"800",color:vm.text}},sc+"%"));
@@ -510,15 +489,9 @@ function renderHistory(app){
 function renderTrends(app){
   if(state.histLoading){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px"}},"Cargando…"));return;}
   if(!state.hist.length){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px",fontSize:"13px"}},"No hay llamadas aún."));return;}
-
-  // Team averages section
-  const teamData={};
-  state.hist.forEach(h=>{
-    const t=h.team||h._team||"Sin equipo";
-    if(!teamData[t])teamData[t]=[];
-    teamData[t].push(overallPct(h));
-  });
   app.appendChild(el("div",{style:{fontWeight:"800",fontSize:"15px",marginBottom:"12px"}},"Promedio por Equipo / Team Averages"));
+  const teamData={};
+  state.hist.forEach(h=>{const t=h.team||h._team||"Sin equipo";if(!teamData[t])teamData[t]=[];teamData[t].push(overallPct(h));});
   const teamGrid=el("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px",marginBottom:"20px"}});
   Object.entries(teamData).forEach(([team,scores])=>{
     const avg=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
@@ -529,8 +502,6 @@ function renderTrends(app){
     teamGrid.appendChild(card);
   });
   app.appendChild(teamGrid);
-
-  // Per-rep trends
   app.appendChild(el("div",{style:{fontWeight:"800",fontSize:"15px",marginBottom:"12px"}},"Tendencias por Rep"));
   const byRep={};
   state.hist.forEach(h=>{const n=h.repName||"Unknown";if(!byRep[n])byRep[n]=[];byRep[n].push(h);});
@@ -574,8 +545,8 @@ function renderTrends(app){
       poly.setAttribute("stroke-linejoin","round");svg.appendChild(poly);
       scores.forEach((s,i)=>{
         const x=pad+(i/(scores.length-1))*(w-2*pad);const y=pad+((maxS-s)/range)*(h-2*pad);
-        const circle=document.createElementNS("http://www.w3.org/2000/svg","circle");
-        circle.setAttribute("cx",x);circle.setAttribute("cy",y);circle.setAttribute("r","3");circle.setAttribute("fill",BRAND);svg.appendChild(circle);
+        const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
+        c.setAttribute("cx",x);c.setAttribute("cy",y);c.setAttribute("r","3");c.setAttribute("fill",BRAND);svg.appendChild(c);
       });
       card.appendChild(svg);
       const dr=el("div",{style:{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#9ca3af",marginTop:"2px"}});
@@ -661,15 +632,21 @@ const server = http.createServer((req, res) => {
           res.end(JSON.stringify({ error: "ANTHROPIC_API_KEY not set" }));
           return;
         }
+        const trimmedTranscript = transcript.slice(0, 12000);
         const payload = JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 6000,
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 4000,
           system: SYSTEM_PROMPT,
-          messages: [{ role: "user", content: (repName ? `Rep name: ${repName}\n` : "") + (team ? `Team: ${team}\n` : "") + "\nTranscript:\n" + transcript.slice(0, 12000) }]
+          messages: [{ role: "user", content: (repName ? `Rep name: ${repName}\n` : "") + (team ? `Team: ${team}\n` : "") + "\nTranscript:\n" + trimmedTranscript }]
         });
         const options = {
           hostname: "api.anthropic.com", path: "/v1/messages", method: "POST",
-          headers: { "Content-Type": "application/json", "anthropic-version": "2023-06-01", "x-api-key": apiKey, "Content-Length": Buffer.byteLength(payload) }
+          headers: {
+            "Content-Type": "application/json",
+            "anthropic-version": "2023-06-01",
+            "x-api-key": apiKey,
+            "Content-Length": Buffer.byteLength(payload)
+          }
         };
         const apiReq = https.request(options, apiRes => {
           let data = "";
@@ -677,7 +654,11 @@ const server = http.createServer((req, res) => {
           apiRes.on("end", () => {
             try {
               const parsed = JSON.parse(data);
-              if (parsed.error) { res.writeHead(400, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: parsed.error.message })); return; }
+              if (parsed.error) {
+                res.writeHead(400, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: parsed.error.message }));
+                return;
+              }
               const text = (parsed.content || []).map(b => b.text || "").join("").trim();
               const clean = text.replace(/^```json\s*/, "").replace(/\s*```$/, "").trim();
               const result = JSON.parse(clean);
@@ -687,12 +668,22 @@ const server = http.createServer((req, res) => {
               saveResult(result);
               res.writeHead(200, { "Content-Type": "application/json" });
               res.end(JSON.stringify(result));
-            } catch (e) { res.writeHead(500, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: "Failed to parse AI response: " + e.message })); }
+            } catch (e) {
+              res.writeHead(500, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ error: "Failed to parse AI response: " + e.message }));
+            }
           });
         });
-        apiReq.on("error", e => { res.writeHead(500, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: "API request failed: " + e.message })); });
-        apiReq.write(payload); apiReq.end();
-      } catch (e) { res.writeHead(400, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: "Bad request: " + e.message })); }
+        apiReq.on("error", e => {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "API request failed: " + e.message }));
+        });
+        apiReq.write(payload);
+        apiReq.end();
+      } catch (e) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Bad request: " + e.message }));
+      }
     });
     return;
   }
