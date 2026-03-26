@@ -77,99 +77,93 @@ MEMBERSHIPS:
 - No membership: $120/visit. Labs $200-$400+ extra.
 - Cancellation fee: $240 Core, $100 Vital. Waived if patient moves far from clinics.
 
-FAMILY DISCOUNTS: 1 adult+1 child=$10/mo off. +2 children=$20/mo off. +3=$30/mo off. +4=$50/mo off.
+FAMILY DISCOUNTS: 1 adult+1 child=$10/mo off. +2=$20/mo off. +3=$30/mo off. +4=$50/mo off.
 
 12 INCLUDED LABS: Urinalysis, Basic Metabolic Panel, Comprehensive Metabolic Panel, CBC, Urine Culture, HbA1c, Cholesterol/Lipid Panel, Pap Smear, PSA, Thyroid Function, Strep Test, Pregnancy Test. Outside cost: $200-$400+.
 
-KEY SERVICES: General exams, diabetes management, hypertension control, GLP-1 weight loss, mental health, women's health, sports medicine, newborn exams, STD treatment, allergy treatment, wound care, nutrition counseling, school physicals (required, included), skin conditions, migraines, asthma, thyroid issues, infections, joint pain, sleep disorders, prenatal care, chronic disease management.
+KEY SERVICES: General exams, diabetes, hypertension, GLP-1 weight loss, mental health, women's health, sports medicine, newborn exams, STDs, allergies, wound care, nutrition, school physicals (included), skin conditions, migraines, asthma, thyroid, infections, joint pain, sleep disorders, prenatal care.
 
-REFERRAL PROGRAM: $50 cash per successful referral (not same household). Mention at close and 3-week follow-up.
+REFERRAL PROGRAM: $50 cash per referral (not same household). Mention at close and 3-week follow-up.
 
-CLINICS: West Valley (385)402-7500 | Orem (801)471-0028 | Ogden (385)483-4649 | Phoenix (623)688-2667
+SALES FRAMEWORK: RAPPORT → PAIN DISCOVERY → IMPACT → VALUE PRESENTATION → CLOSE.
 
-SALES FRAMEWORK: RAPPORT → PAIN DISCOVERY → IMPACT → VALUE PRESENTATION → CLOSE. Never present before discovering pain.
-
-KEY SALES RULES:
-1. Prospect must talk MORE than rep. Questions drive sales, not monologues.
+KEY RULES:
+1. Prospect talks MORE than rep. Questions drive sales.
 2. Never argue. Use: "Entiendo", "Tiene sentido", "Eso es muy común."
-3. Always attempt to close by phone same day — even if they say they need to think.
-4. No call ends without: sale closed, appointment booked, OR specific date/time follow-up. "Hablamos pronto" = failure.
-5. Create urgency: "Los chequeos gratuitos se llenan rápido."
-6. Anchor price: "Una consulta afuera cuesta $200-$300. Los laboratorios, $400 más."
-7. Discover pain FIRST. Ask: "¿Cuándo fue al médico por última vez? ¿Cuánto le costó?"
+3. Always attempt to close same day by phone.
+4. No call ends without: sale closed, appointment booked, OR specific date/time follow-up.
+5. Anchor price: "Una consulta afuera cuesta $200-$300. Los laboratorios, $400 más."
+6. Discover pain FIRST before presenting anything.
 
-OBJECTION TOOLS (in order — Vamos does NOT have payment plans, never penalize for not offering them):
+OBJECTION TOOLS (NO payment plans — never penalize for not offering):
 1. Value anchoring vs outside costs
 2. Urgency (limited spots)
-3. Referral bonus ($50 immediate ROI)
+3. Referral bonus ($50)
 4. Family discount codes
-5. Enrollment fee waiver — LAST RESORT ONLY. Not scored but mention in coaching if missed.
+5. Enrollment fee waiver — last resort only, not scored
 
-SCORING: Evaluate each criterion as "pass", "fail", or "na". Be strict on Discovery, Value Framing, and Closing.
+SCORING: "pass", "fail", or "na" only.
 
-GREETING (4 criteria):
-1. Introduced themselves with a name (first name is sufficient) and mentioned Vamos Health
-2. Established the purpose of the call clearly within the first 20 seconds
-3. Asked for the prospect's name and used it naturally during the call
-4. Set a warm, professional, and confident tone from the very first seconds
+GREETING (4):
+1. Introduced with a name and mentioned Vamos Health
+2. Established purpose within first 20 seconds
+3. Asked prospect's name and used it naturally
+4. Warm, professional, confident tone
 
-DISCOVERY (6 criteria):
-1. Asked about any health concerns or conditions (ANY primary care topic counts)
-2. Asked about insurance status — critical pivot point
-3. Explored family situation (spouse, children) — "pass" if explored, "fail" if not, "na" only if prospect clearly has no family
-4. Identified the prospect's IMMEDIATE pain or need before presenting anything
-5. Active listening — paraphrased, reflected, or confirmed what the prospect said
-6. Follow-up questions based on the prospect's answers, not a rigid script
+DISCOVERY (6):
+1. Asked about any health concern (ANY primary care topic — chronic, acute, preventive, mental health, women's health, skin, etc.)
+2. Asked about insurance status
+3. Explored family situation — "pass" if explored, "fail" if not, "na" only if prospect clearly has no family
+4. Identified IMMEDIATE pain before presenting
+5. Active listening — paraphrased or confirmed what was heard
+6. Follow-up questions based on answers, not script
 
-PRESENTATION (5 criteria):
+PRESENTATION (5):
 1. Presented AFTER discovering pain
-2. Translated benefits into specific dollar savings ("Labs outside = $200-$400, here included")
-3. Tailored solution to this prospect's specific needs
+2. Translated benefits into specific dollar savings
+3. Tailored to this prospect's specific needs
 4. Simple clear language — no jargon
-5. Active dialogue — check-in questions, not a monologue
+5. Active dialogue — not a monologue
 
-OBJECTIONS (5 criteria):
-1. Received objections calmly — used "Entiendo", "Tiene sentido"
-2. Clarified objection with a question before responding
-3. Addressed price with value anchoring — NOT payment plans
-4. Used approved tools in order: value → urgency → referral bonus → family discount
-5. Confirmed objection was resolved before moving on
+OBJECTIONS (5):
+1. Received objections calmly
+2. Clarified objection before responding
+3. Addressed price with value — NOT payment plans
+4. Used tools in order: value → urgency → referral → family discount
+5. Confirmed resolution before moving on
 
-CLOSING (5 criteria):
-1. Asked for the sale directly and confidently
+CLOSING (5):
+1. Asked for sale directly and confidently
 2. Attempted same-day phone close
-3. Used proper technique: assumptive, alternative, or urgency-based
-4. When hesitation arose, probed with questions instead of giving up
-5. Secured concrete next step with exact date and time. "Hablamos pronto" = fail.
+3. Used proper technique: assumptive, alternative, or urgency
+4. Probed with questions when hesitation arose
+5. Secured concrete next step. "Hablamos pronto" = fail.
 
-RAPPORT — ENTIRE CALL (5 criteria):
-1. Empathetic human tone from start to finish
+RAPPORT (5):
+1. Empathetic tone start to finish
 2. Prospect felt heard and valued
 3. Prospect talked MORE than rep
-4. Trust built through honesty — no false promises
-5. Energy and warmth consistent even through objections
+4. Trust through honesty — no false promises
+5. Energy consistent even through objections
 
-MISSED OPPORTUNITIES (4 criteria — "fail"=missed, "pass"=handled or not applicable):
+MISSED OPPORTUNITIES (4 — "fail"=missed, "pass"=handled/not applicable):
 1. Buying signal ignored
-2. Family opportunity missed — spouse or kids mentioned but not explored
-3. Pain mentioned in passing but not explored
+2. Family opportunity missed
+3. Pain mentioned but not explored
 4. $50 referral bonus not mentioned at close
 
-FEEDBACK FORMAT — every "fail" note must:
-1. Name the exact moment from the transcript
-2. Give word-for-word script of what rep should have said
-3. Include a real sales stat with source
+FEEDBACK: Every "fail" note must: (1) name exact transcript moment, (2) give word-for-word script rep should have used, (3) include real sales stat with source.
 
-SALES STATS: 4+ discovery questions=43% more closes (RAIN Group 2023). Prospects who verbalize pain=2.4x more likely to buy (Gong.io 2022). Price anchoring increases perceived value 40% (Journal of Consumer Psychology). Specific next step=3x better conversion (HubSpot 2023). Rep talks <40% of call=54% more closes (Gong.io 2021). Referral bonus at close=45% more referrals (Wharton). Same-day close attempt=67% more conversions (InsideSales.com). Personalized pitch=36% higher close rate (Salesforce 2023). Objections handled with questions=70% retention (Richardson Sales Training).
+STATS: 4+ discovery questions=43% more closes (RAIN Group 2023). Pain verbalized=2.4x more likely to buy (Gong 2022). Price anchoring=40% more perceived value (Journal Consumer Psychology). Specific next step=3x better conversion (HubSpot 2023). Rep talks <40%=54% more closes (Gong 2021). Referral bonus mention=45% more referrals (Wharton). Same-day close=67% more conversions (InsideSales). Personalized pitch=36% higher close (Salesforce 2023). Objections with questions=70% retention (Richardson).
 
-COACHING SUMMARY (both Spanish and English):
-1. Lo que hiciste bien — 1-2 specific wins from this call
-2. Tus 3 áreas de enfoque — 3 most impactful gaps: exact moment + word-for-word script + sales stat
-3. Lo que esto impacta — one sentence connecting to closes, retention, reactivations
+COACHING SUMMARY (Spanish and English):
+1. Lo que hiciste bien — 1-2 specific wins
+2. Tus 3 áreas de enfoque — exact moment + word-for-word script + stat
+3. Lo que esto impacta — one sentence on closes/retention/reactivations
 
-Tone: Direct, respectful, coach who wants them to win. Tie behavior to business outcome.
+Tone: Direct, respectful coach. Tie behavior to business outcome.
 
-IMPORTANT: Respond with ONLY valid JSON. No markdown. No code blocks. Start with { end with }.
+RESPOND WITH ONLY VALID JSON. No markdown. No code blocks. Start { end }.
 Verdict: "strong">=80%, "needs coaching" 60-79%, "critical gaps"<60%.
 
 {
@@ -177,16 +171,16 @@ Verdict: "strong">=80%, "needs coaching" 60-79%, "critical gaps"<60%.
   "summary_es": "2-3 sentences",
   "summary_en": "2-3 sentences",
   "verdict": "needs coaching",
-  "coaching_es": "Structured coaching in Spanish",
-  "coaching_en": "Structured coaching in English",
+  "coaching_es": "structured coaching Spanish",
+  "coaching_en": "structured coaching English",
   "categories": {
-    "greeting":      { "scores": ["na","na","na","na"],           "notes_es": ["","","",""],           "notes_en": ["","","",""] },
-    "discovery":     { "scores": ["na","na","na","na","na","na"], "notes_es": ["","","","","",""],     "notes_en": ["","","","","",""] },
-    "presentation":  { "scores": ["na","na","na","na","na"],      "notes_es": ["","","","",""],        "notes_en": ["","","","",""] },
-    "objections":    { "scores": ["na","na","na","na","na"],      "notes_es": ["","","","",""],        "notes_en": ["","","","",""] },
-    "closing":       { "scores": ["na","na","na","na","na"],      "notes_es": ["","","","",""],        "notes_en": ["","","","",""] },
-    "rapport":       { "scores": ["na","na","na","na","na"],      "notes_es": ["","","","",""],        "notes_en": ["","","","",""] },
-    "opportunities": { "scores": ["na","na","na","na"],           "notes_es": ["","","",""],           "notes_en": ["","","",""] }
+    "greeting":      { "scores": ["na","na","na","na"],           "notes_es": ["","","",""],        "notes_en": ["","","",""] },
+    "discovery":     { "scores": ["na","na","na","na","na","na"], "notes_es": ["","","","","",""],  "notes_en": ["","","","","",""] },
+    "presentation":  { "scores": ["na","na","na","na","na"],      "notes_es": ["","","","",""],     "notes_en": ["","","","",""] },
+    "objections":    { "scores": ["na","na","na","na","na"],      "notes_es": ["","","","",""],     "notes_en": ["","","","",""] },
+    "closing":       { "scores": ["na","na","na","na","na"],      "notes_es": ["","","","",""],     "notes_en": ["","","","",""] },
+    "rapport":       { "scores": ["na","na","na","na","na"],      "notes_es": ["","","","",""],     "notes_en": ["","","","",""] },
+    "opportunities": { "scores": ["na","na","na","na"],           "notes_es": ["","","",""],        "notes_en": ["","","",""] }
   }
 }`;
 
@@ -258,16 +252,16 @@ const CATS=[
    en:["Introduced with a name and mentioned Vamos Health","Established purpose within the first 20 seconds","Asked prospect's name and used it naturally","Warm, professional, confident tone from the start"]},
   {id:"discovery",label:"Descubrimiento",label_en:"Discovery",color:"#EC4899",bg:"#FDF2F8",tc:"#9D174D",
    es:["Preguntó sobre cualquier preocupación de salud (cualquier tema de atención primaria)","Preguntó sobre estatus de seguro médico — pivote crítico","Exploró situación familiar — fail si no se exploró","Identificó el dolor INMEDIATO antes de presentar","Escucha activa — parafraseó o confirmó lo escuchado","Preguntas basadas en respuestas del prospecto, no en guión"],
-   en:["Asked about any health concerns (any primary care topic)","Asked about insurance status — critical pivot","Explored family situation — fail if not explored","Identified IMMEDIATE pain before presenting","Active listening — paraphrased or confirmed what was heard","Follow-up questions based on prospect's answers, not a script"]},
+   en:["Asked about any health concern (any primary care topic)","Asked about insurance status — critical pivot","Explored family situation — fail if not explored","Identified IMMEDIATE pain before presenting","Active listening — paraphrased or confirmed","Follow-up questions based on answers, not a script"]},
   {id:"presentation",label:"Presentación",label_en:"Presentation",color:"#D4537E",bg:"#FBEAF0",tc:"#72243E",
    es:["Presentó DESPUÉS de descubrir el dolor","Tradujo beneficios a ahorros en dólares concretos","Personalizó la solución a las necesidades específicas","Lenguaje simple y claro — sin jerga","Diálogo activo — no un monólogo"],
    en:["Presented AFTER discovering pain","Translated benefits into specific dollar savings","Tailored solution to prospect's specific needs","Simple clear language — no jargon","Active dialogue — not a monologue"]},
   {id:"objections",label:"Objeciones",label_en:"Objections",color:"#D85A30",bg:"#FAECE7",tc:"#712B13",
    es:["Recibió objeciones con calma","Clarificó la objeción antes de responder","Respondió al precio con valor — NO planes de pago","Usó herramientas: valor → urgencia → referido → descuento","Confirmó resolución antes de continuar"],
-   en:["Received objections calmly","Clarified objection before responding","Addressed price with value — NOT payment plans","Used tools: value → urgency → referral → discount","Confirmed objection resolved before moving on"]},
+   en:["Received objections calmly","Clarified objection before responding","Addressed price with value — NOT payment plans","Used tools: value → urgency → referral → discount","Confirmed resolution before moving on"]},
   {id:"closing",label:"Cierre",label_en:"Closing",color:"#639922",bg:"#EAF3DE",tc:"#27500A",
    es:["Pidió la venta directamente","Intentó cerrar el mismo día por teléfono","Usó técnica: asuntivo, alternativa o urgencia","Ante dudas profundizó con preguntas","Aseguró próximo paso concreto — 'Hablamos pronto' = falla"],
-   en:["Asked for the sale directly","Attempted same-day phone close","Used proper technique: assumptive, alternative, or urgency","Probed with questions when hesitation arose","Secured concrete next step — 'Talk soon' = fail"]},
+   en:["Asked for the sale directly","Attempted same-day phone close","Used proper technique: assumptive, alternative, urgency","Probed with questions when hesitation arose","Secured concrete next step — 'Talk soon' = fail"]},
   {id:"rapport",label:"Rapport (Toda la llamada)",label_en:"Rapport (Entire call)",color:"#378ADD",bg:"#E6F1FB",tc:"#0C447C",
    es:["Tono empático de principio a fin","El prospecto se sintió escuchado y valorado","El prospecto habló MÁS que el rep","Confianza con honestidad — sin falsas promesas","Energía consistente incluso ante objeciones"],
    en:["Empathetic tone from start to finish","Prospect felt heard and valued","Prospect talked MORE than the rep","Trust through honesty — no false promises","Energy consistent even through objections"]},
@@ -632,10 +626,10 @@ const server = http.createServer((req, res) => {
           res.end(JSON.stringify({ error: "ANTHROPIC_API_KEY not set" }));
           return;
         }
-        const trimmedTranscript = transcript.slice(0, 12000);
+        const trimmedTranscript = transcript.slice(0, 8000);
         const payload = JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 4000,
+          model: "claude-sonnet-4-6",
+          max_tokens: 6000,
           system: SYSTEM_PROMPT,
           messages: [{ role: "user", content: (repName ? `Rep name: ${repName}\n` : "") + (team ? `Team: ${team}\n` : "") + "\nTranscript:\n" + trimmedTranscript }]
         });
