@@ -21,12 +21,16 @@ function getDbClient() {
           call_date TEXT,
           verdict TEXT,
           overall_score INTEGER,
+          sale_closed BOOLEAN DEFAULT FALSE,
+          manager_notes TEXT DEFAULT '',
           result_json TEXT,
           created_at TIMESTAMP DEFAULT NOW()
         )
-      `).then(() => {
-        return client.query(`ALTER TABLE qa_results ADD COLUMN IF NOT EXISTS team TEXT`).catch(() => {});
-      }).then(() => client);
+      `).then(() => Promise.all([
+        client.query(`ALTER TABLE qa_results ADD COLUMN IF NOT EXISTS team TEXT`).catch(()=>{}),
+        client.query(`ALTER TABLE qa_results ADD COLUMN IF NOT EXISTS sale_closed BOOLEAN DEFAULT FALSE`).catch(()=>{}),
+        client.query(`ALTER TABLE qa_results ADD COLUMN IF NOT EXISTS manager_notes TEXT DEFAULT ''`).catch(()=>{})
+      ])).then(() => client);
     });
   } catch (e) { return Promise.resolve(null); }
 }
@@ -36,33 +40,56 @@ function saveResult(data) {
     if (!client) return;
     const score = overallScore(data);
     return client.query(
-      "INSERT INTO qa_results (rep_name, team, call_date, verdict, overall_score, result_json) VALUES ($1,$2,$3,$4,$5,$6)",
-      [data.repName || "Unknown", data.team || "", data.date || "", data.verdict || "", score, JSON.stringify(data)]
+      "INSERT INTO qa_results (rep_name, team, call_date, verdict, overall_score, sale_closed, result_json) VALUES ($1,$2,$3,$4,$5,$6,$7)",
+      [data.repName||"Unknown", data.team||"", data.date||"", data.verdict||"", score, data.sale_closed||false, JSON.stringify(data)]
     );
-  }).catch(() => {});
+  }).catch(()=>{});
 }
 
 function getHistory(repFilter, teamFilter) {
   return getDbClient().then(client => {
     if (!client) return [];
-    let q = "SELECT id, rep_name, team, call_date, verdict, overall_score, result_json, created_at FROM qa_results WHERE 1=1";
+    let q = "SELECT id, rep_name, team, call_date, verdict, overall_score, sale_closed, manager_notes, result_json, created_at FROM qa_results WHERE 1=1";
     const params = [];
-    if (repFilter) { params.push("%" + repFilter.toLowerCase() + "%"); q += ` AND LOWER(rep_name) LIKE $${params.length}`; }
-    if (teamFilter) { params.push(teamFilter); q += ` AND team = $${params.length}`; }
+    if (repFilter) { params.push("%"+repFilter.toLowerCase()+"%"); q+=` AND LOWER(rep_name) LIKE $${params.length}`; }
+    if (teamFilter) { params.push(teamFilter); q+=` AND team = $${params.length}`; }
     q += " ORDER BY created_at DESC LIMIT 200";
     return client.query(q, params).then(r => r.rows);
-  }).catch(() => []);
+  }).catch(()=>[]);
+}
+
+function getDashboardStats() {
+  return getDbClient().then(client => {
+    if (!client) return null;
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0,0,0,0);
+    const today = new Date(); today.setHours(0,0,0,0);
+    return Promise.all([
+      client.query("SELECT COUNT(*) as total FROM qa_results WHERE created_at >= $1", [startOfWeek]),
+      client.query("SELECT COUNT(*) as total FROM qa_results WHERE created_at >= $1", [today]),
+      client.query("SELECT team, AVG(overall_score) as avg_score, COUNT(*) as calls FROM qa_results WHERE team != '' GROUP BY team ORDER BY avg_score DESC"),
+      client.query("SELECT rep_name, team, AVG(overall_score) as avg_score, COUNT(*) as calls, SUM(CASE WHEN sale_closed THEN 1 ELSE 0 END) as closed FROM qa_results WHERE created_at >= $1 GROUP BY rep_name, team ORDER BY avg_score DESC", [startOfWeek]),
+      client.query("SELECT COUNT(*) as total, SUM(CASE WHEN sale_closed THEN 1 ELSE 0 END) as closed FROM qa_results WHERE created_at >= $1", [startOfWeek])
+    ]).then(([week, day, teams, reps, closes]) => ({
+      callsThisWeek: parseInt(week.rows[0].total),
+      callsToday: parseInt(day.rows[0].total),
+      teamStats: teams.rows,
+      repStats: reps.rows,
+      closesThisWeek: parseInt(closes.rows[0].closed||0),
+      totalThisWeek: parseInt(closes.rows[0].total||0)
+    }));
+  }).catch(()=>null);
 }
 
 function overallScore(r) {
   if (!r || !r.categories) return 0;
-  const mainCats = ["greeting","discovery","presentation","objections","closing","rapport"];
-  let p = 0, t = 0;
-  mainCats.forEach(cat => {
-    const scores = r.categories[cat]?.scores || [];
-    scores.forEach(s => { if (s === "pass") { p++; t++; } else if (s === "fail") t++; });
+  let p=0,t=0;
+  ["greeting","discovery","presentation","objections","closing","rapport"].forEach(cat=>{
+    (r.categories[cat]?.scores||[]).forEach(s=>{if(s==="pass"){p++;t++;}else if(s==="fail")t++;});
   });
-  return t > 0 ? Math.round(p / t * 100) : 0;
+  return t>0?Math.round(p/t*100):0;
 }
 
 // ─── SYSTEM PROMPT ───────────────────────────────────────────────────────────
@@ -102,72 +129,42 @@ OBJECTION TOOLS (NO payment plans — never penalize for not offering):
 4. Family discount codes
 5. Enrollment fee waiver — last resort only, not scored
 
+SALE CLOSED DETECTION — CRITICAL:
+Set "sale_closed": true ONLY if there is clear evidence in the transcript that:
+- The prospect provided card/payment information
+- A confirmation number or registration was completed
+- The rep explicitly confirmed the membership was processed ("quedó registrado", "ya está inscrito", "procesamos su inscripción")
+- The prospect agreed to pay and the call ended with enrollment confirmed
+Set "sale_closed": false if the call ended without confirmed payment, even if prospect said they were interested or would call back.
+
 SCORING: "pass", "fail", or "na" only.
 
-GREETING (4):
-1. Introduced with a name and mentioned Vamos Health
-2. Established purpose within first 20 seconds
-3. Asked prospect's name and used it naturally
-4. Warm, professional, confident tone
+GREETING (4): 1.Introduced with name+Vamos Health. 2.Established purpose within 20 seconds. 3.Asked prospect name and used it. 4.Warm professional tone.
 
-DISCOVERY (6):
-1. Asked about any health concern (ANY primary care topic — chronic, acute, preventive, mental health, women's health, skin, etc.)
-2. Asked about insurance status
-3. Explored family situation — "pass" if explored, "fail" if not, "na" only if prospect clearly has no family
-4. Identified IMMEDIATE pain before presenting
-5. Active listening — paraphrased or confirmed what was heard
-6. Follow-up questions based on answers, not script
+DISCOVERY (6): 1.Asked about any health concern (ANY primary care topic). 2.Asked about insurance status. 3.Explored family situation — fail if not explored. 4.Identified IMMEDIATE pain before presenting. 5.Active listening — paraphrased or confirmed. 6.Follow-up questions based on answers not script.
 
-PRESENTATION (5):
-1. Presented AFTER discovering pain
-2. Translated benefits into specific dollar savings
-3. Tailored to this prospect's specific needs
-4. Simple clear language — no jargon
-5. Active dialogue — not a monologue
+PRESENTATION (5): 1.Presented AFTER discovering pain. 2.Translated benefits into dollar savings. 3.Tailored to prospect's specific needs. 4.Simple clear language. 5.Active dialogue not monologue.
 
-OBJECTIONS (5):
-1. Received objections calmly
-2. Clarified objection before responding
-3. Addressed price with value — NOT payment plans
-4. Used tools in order: value → urgency → referral → family discount
-5. Confirmed resolution before moving on
+OBJECTIONS (5): 1.Received objections calmly. 2.Clarified before responding. 3.Value anchoring not payment plans. 4.Used tools in order. 5.Confirmed resolution.
 
-CLOSING (5):
-1. Asked for sale directly and confidently
-2. Attempted same-day phone close
-3. Used proper technique: assumptive, alternative, or urgency
-4. Probed with questions when hesitation arose
-5. Secured concrete next step. "Hablamos pronto" = fail.
+CLOSING (5): 1.Asked for sale directly. 2.Same-day phone close attempt. 3.Proper technique. 4.Probed when hesitation arose. 5.Concrete next step — "Hablamos pronto" = fail.
 
-RAPPORT (5):
-1. Empathetic tone start to finish
-2. Prospect felt heard and valued
-3. Prospect talked MORE than rep
-4. Trust through honesty — no false promises
-5. Energy consistent even through objections
+RAPPORT (5): 1.Empathetic tone throughout. 2.Prospect felt heard. 3.Prospect talked MORE. 4.Trust through honesty. 5.Consistent energy.
 
-MISSED OPPORTUNITIES (4 — "fail"=missed, "pass"=handled/not applicable):
-1. Buying signal ignored
-2. Family opportunity missed
-3. Pain mentioned but not explored
-4. $50 referral bonus not mentioned at close
+MISSED OPPORTUNITIES (4): 1.Buying signal ignored. 2.Family opportunity missed. 3.Pain not explored. 4.$50 referral not mentioned.
 
-FEEDBACK: Every "fail" note must: (1) name exact transcript moment, (2) give word-for-word script rep should have used, (3) include real sales stat with source.
+FEEDBACK: Every fail = exact moment + word-for-word script + real stat with source.
 
-STATS: 4+ discovery questions=43% more closes (RAIN Group 2023). Pain verbalized=2.4x more likely to buy (Gong 2022). Price anchoring=40% more perceived value (Journal Consumer Psychology). Specific next step=3x better conversion (HubSpot 2023). Rep talks <40%=54% more closes (Gong 2021). Referral bonus mention=45% more referrals (Wharton). Same-day close=67% more conversions (InsideSales). Personalized pitch=36% higher close (Salesforce 2023). Objections with questions=70% retention (Richardson).
+STATS: 4+ discovery questions=43% more closes (RAIN 2023). Pain verbalized=2.4x more likely (Gong 2022). Price anchoring=40% more value (JCP). Specific next step=3x better (HubSpot 2023). Rep <40% talk=54% more closes (Gong 2021). Referral mention=45% more referrals (Wharton). Same-day close=67% more (InsideSales). Personalized=36% higher (Salesforce 2023). Questions for objections=70% retention (Richardson).
 
-COACHING SUMMARY (Spanish and English):
-1. Lo que hiciste bien — 1-2 specific wins
-2. Tus 3 áreas de enfoque — exact moment + word-for-word script + stat
-3. Lo que esto impacta — one sentence on closes/retention/reactivations
-
-Tone: Direct, respectful coach. Tie behavior to business outcome.
+COACHING: (1) Lo que hiciste bien — 1-2 specific wins. (2) Tus 3 áreas — exact moment + script + stat. (3) Lo que esto impacta — one sentence.
 
 RESPOND WITH ONLY VALID JSON. No markdown. No code blocks. Start { end }.
 Verdict: "strong">=80%, "needs coaching" 60-79%, "critical gaps"<60%.
 
 {
   "repName": "",
+  "sale_closed": false,
   "summary_es": "2-3 sentences",
   "summary_en": "2-3 sentences",
   "verdict": "needs coaching",
@@ -234,16 +231,11 @@ function tryLogin(){
     document.getElementById("lock").style.display="none";
     document.getElementById("app").style.display="block";
     render();
-  } else {
-    document.getElementById("pw-err").style.display="block";
-  }
+  } else { document.getElementById("pw-err").style.display="block"; }
 }
 (function(){
   const saved=sessionStorage.getItem("vamos_auth");
-  if(saved===CORRECT_PW){
-    document.getElementById("lock").style.display="none";
-    document.getElementById("app").style.display="block";
-  }
+  if(saved===CORRECT_PW){document.getElementById("lock").style.display="none";document.getElementById("app").style.display="block";}
 })();
 
 const CATS=[
@@ -266,8 +258,8 @@ const CATS=[
    es:["Tono empático de principio a fin","El prospecto se sintió escuchado y valorado","El prospecto habló MÁS que el rep","Confianza con honestidad — sin falsas promesas","Energía consistente incluso ante objeciones"],
    en:["Empathetic tone from start to finish","Prospect felt heard and valued","Prospect talked MORE than the rep","Trust through honesty — no false promises","Energy consistent even through objections"]},
   {id:"opportunities",label:"Oportunidades Perdidas",label_en:"Missed Opportunities",color:"#888780",bg:"#F1EFE8",tc:"#2C2C2A",
-   es:["Señal de compra ignorada","Oportunidad familiar perdida — no se exploró plan o descuentos","Dolor mencionado de pasada sin profundizar","Bono de $50 por referido no mencionado al cierre"],
-   en:["Buying signal ignored","Family opportunity missed — plan or discounts not explored","Pain mentioned but not explored","$50 referral bonus not mentioned at close"]}
+   es:["Señal de compra ignorada","Oportunidad familiar perdida","Dolor mencionado de pasada sin profundizar","Bono de $50 por referido no mencionado al cierre"],
+   en:["Buying signal ignored","Family opportunity missed","Pain mentioned but not explored","$50 referral bonus not mentioned at close"]}
 ];
 
 const VM={
@@ -276,7 +268,7 @@ const VM={
   "critical gaps":{bg:"#fde8e8",text:"#9b1c1c",border:"#dc2626",es:"Brechas Críticas",en:"Critical Gaps"}
 };
 
-let state={tab:"analyze",tx:"",rep:"",team:"",date:new Date().toISOString().slice(0,10),loading:false,result:null,err:"",hist:[],viewing:null,filterRep:"",filterTeam:"",lang:"both",histLoading:false};
+let state={tab:"dashboard",tx:"",rep:"",team:"",date:new Date().toISOString().slice(0,10),loading:false,result:null,err:"",hist:[],viewing:null,filterRep:"",filterTeam:"",lang:"both",histLoading:false,dashboard:null,dashLoading:false};
 
 function calcPct(catId,r){
   const s=r?.categories?.[catId]?.scores||[];
@@ -316,20 +308,30 @@ function render(){
   [["both","ES + EN"],["es","Solo Español"],["en","English only"]].forEach(([v,t])=>{const o=el("option",{value:v},t);if(v===state.lang)o.selected=true;ls.appendChild(o);});
   hdr.appendChild(ls);app.appendChild(hdr);
   const tb=el("div",{style:{display:"flex",gap:"4px",marginBottom:"16px",background:"#ececec",borderRadius:"9px",padding:"4px"}});
-  [["analyze","Analizar"],["history","Historial"],["trends","Tendencias"],...(state.viewing?[["view","Reporte"]]:[])]
+  [["dashboard","Dashboard"],["analyze","Analizar"],["history","Historial"],["trends","Tendencias"],...(state.viewing?[["view","Reporte"]]:[])]
     .forEach(([id,label])=>{
       const b=el("button",{className:"tab"+(state.tab===id?" active":""),onClick:()=>{
         state.tab=id;
         if(id==="history"||id==="trends")loadHistory();
+        if(id==="dashboard")loadDashboard();
         render();
       }},label);
       tb.appendChild(b);
     });
   app.appendChild(tb);
-  if(state.tab==="analyze")renderAnalyze(app);
+  if(state.tab==="dashboard")renderDashboard(app);
+  else if(state.tab==="analyze")renderAnalyze(app);
   else if(state.tab==="history")renderHistory(app);
   else if(state.tab==="trends")renderTrends(app);
   else if(state.tab==="view"&&state.viewing)renderView(app);
+}
+
+function loadDashboard(){
+  if(state.dashLoading)return;
+  state.dashLoading=true;
+  fetch("/api/dashboard").then(r=>r.json()).then(d=>{
+    state.dashboard=d;state.dashLoading=false;render();
+  }).catch(()=>{state.dashLoading=false;});
 }
 
 function loadHistory(){
@@ -337,9 +339,92 @@ function loadHistory(){
   state.histLoading=true;
   fetch("/api/history?rep="+encodeURIComponent(state.filterRep)+"&team="+encodeURIComponent(state.filterTeam))
     .then(r=>r.json()).then(rows=>{
-      state.hist=rows.map(r=>({...JSON.parse(r.result_json),_dbid:r.id,_created:r.created_at,_team:r.team}));
+      state.hist=rows.map(r=>({...JSON.parse(r.result_json),_dbid:r.id,_created:r.created_at,_team:r.team,_sale_closed:r.sale_closed,_notes:r.manager_notes||""}));
       state.histLoading=false;render();
     }).catch(()=>{state.histLoading=false;});
+}
+
+function renderDashboard(app){
+  if(!state.dashboard&&!state.dashLoading){loadDashboard();return;}
+  if(state.dashLoading){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px"}},"Cargando dashboard…"));return;}
+  const d=state.dashboard;
+  if(!d){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px"}},"No hay datos aún."));return;}
+
+  // Top stats
+  const statsGrid=el("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginBottom:"16px"}});
+  const stats=[
+    {label:"Llamadas hoy",value:d.callsToday,color:"#EC4899"},
+    {label:"Esta semana",value:d.callsThisWeek,color:"#7F77DD"},
+    {label:"Ventas cerradas",value:d.closesThisWeek+(d.totalThisWeek>0?" ("+Math.round(d.closesThisWeek/d.totalThisWeek*100)+"%)":""),color:"#085041"}
+  ];
+  stats.forEach(s=>{
+    const card=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"10px",padding:"14px 12px",textAlign:"center"}});
+    card.appendChild(el("div",{style:{fontSize:"22px",fontWeight:"800",color:s.color}},String(s.value)));
+    card.appendChild(el("div",{style:{fontSize:"11px",color:"#9ca3af",marginTop:"4px"}},s.label));
+    statsGrid.appendChild(card);
+  });
+  app.appendChild(statsGrid);
+
+  // Team averages
+  if(d.teamStats&&d.teamStats.length){
+    app.appendChild(el("div",{style:{fontWeight:"700",fontSize:"13px",color:"#374151",marginBottom:"8px"}},"Promedio por Equipo"));
+    const teamWrap=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"10px",padding:"12px",marginBottom:"16px"}});
+    d.teamStats.forEach((t,i)=>{
+      const avg=Math.round(parseFloat(t.avg_score));
+      const isLow=avg<60;
+      const row=el("div",{style:{display:"flex",alignItems:"center",gap:"10px",padding:"6px 0",borderBottom:i<d.teamStats.length-1?"1px solid #f3f4f6":"none"}});
+      const nameEl=el("div",{style:{fontSize:"12px",fontWeight:"600",color:"#374151",width:"110px",flexShrink:"0"}},t.team);
+      if(isLow)nameEl.appendChild(el("span",{style:{fontSize:"9px",background:"#FEE2E2",color:"#991B1B",borderRadius:"4px",padding:"1px 5px",marginLeft:"5px"}},"Coaching"));
+      row.appendChild(nameEl);
+      const barWrap=el("div",{style:{flex:"1",height:"8px",background:"#f3f4f6",borderRadius:"4px",overflow:"hidden"}});
+      const bar=el("div",{style:{height:"100%",width:avg+"%",background:avg>=80?"#5DCAA5":avg>=60?"#EC4899":"#EF4444",borderRadius:"4px",transition:"width .3s"}});
+      barWrap.appendChild(bar);row.appendChild(barWrap);
+      row.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"700",color:"#374151",width:"40px",textAlign:"right"}},avg+"%"));
+      row.appendChild(el("div",{style:{fontSize:"10px",color:"#9ca3af",width:"50px",textAlign:"right"}},t.calls+" calls"));
+      teamWrap.appendChild(row);
+    });
+    app.appendChild(teamWrap);
+  }
+
+  // Top performers this week
+  if(d.repStats&&d.repStats.length){
+    app.appendChild(el("div",{style:{fontWeight:"700",fontSize:"13px",color:"#374151",marginBottom:"8px"}},"Top Performers Esta Semana"));
+    const repWrap=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"10px",padding:"12px",marginBottom:"16px"}});
+    d.repStats.slice(0,5).forEach((r,i)=>{
+      const avg=Math.round(parseFloat(r.avg_score));
+      const closeRate=r.calls>0?Math.round(parseInt(r.closed)/parseInt(r.calls)*100):0;
+      const row=el("div",{style:{display:"flex",alignItems:"center",gap:"10px",padding:"8px 0",borderBottom:i<Math.min(d.repStats.length,5)-1?"1px solid #f3f4f6":"none"}});
+      const rank=el("div",{style:{fontSize:"13px",fontWeight:"800",color:i===0?"#F5A623":i===1?"#9ca3af":i===2?"#CD7F32":"#e5e7eb",width:"20px",textAlign:"center"}},i===0?"🥇":i===1?"🥈":i===2?"🥉":"#"+(i+1));
+      row.appendChild(rank);
+      const info=el("div",{style:{flex:"1"}});
+      info.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"600",color:"#374151"}},r.rep_name));
+      if(r.team)info.appendChild(el("div",{style:{fontSize:"10px",color:"#9D174D"}},r.team));
+      row.appendChild(info);
+      if(closeRate>0){
+        const closeBadge=el("div",{style:{fontSize:"10px",fontWeight:"700",background:"#E1F5EE",color:"#085041",borderRadius:"5px",padding:"2px 6px"}},closeRate+"% closed");
+        row.appendChild(closeBadge);
+      }
+      const scoreEl=el("div",{style:{fontSize:"16px",fontWeight:"800",color:avg>=80?"#085041":avg>=60?"#9D174D":"#991B1B",width:"44px",textAlign:"right"}},avg+"%");
+      row.appendChild(scoreEl);
+      repWrap.appendChild(row);
+    });
+    app.appendChild(repWrap);
+
+    // Teams needing coaching
+    const needCoaching=d.teamStats.filter(t=>Math.round(parseFloat(t.avg_score))<70);
+    if(needCoaching.length){
+      app.appendChild(el("div",{style:{fontWeight:"700",fontSize:"13px",color:"#374151",marginBottom:"8px"}},"Equipos que Necesitan Coaching"));
+      const ncWrap=el("div",{style:{background:"#FEE2E2",border:"1px solid #EF4444",borderRadius:"10px",padding:"12px",marginBottom:"16px"}});
+      needCoaching.forEach(t=>{
+        const avg=Math.round(parseFloat(t.avg_score));
+        const row=el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0"}});
+        row.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"600",color:"#991B1B"}},t.team));
+        row.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"800",color:"#991B1B"}},avg+"%"));
+        ncWrap.appendChild(row);
+      });
+      app.appendChild(ncWrap);
+    }
+  }
 }
 
 function renderAnalyze(app){
@@ -380,10 +465,14 @@ function doAnalyze(){
 
 function renderResult(wrap,r){
   const sc=overallPct(r),vm=VM[r.verdict]||VM["needs coaching"];
+  const isClosed=r.sale_closed||r._sale_closed;
   const vh=el("div",{style:{background:vm.bg,border:"1px solid "+vm.border,borderRadius:"12px",padding:"14px 18px",marginBottom:"14px",display:"flex",justifyContent:"space-between",alignItems:"center"}});
   const vl=el("div");
-  if(r.repName)vl.appendChild(el("div",{style:{fontSize:"17px",fontWeight:"800",color:vm.text}},r.repName));
-  if(r.team)vl.appendChild(el("div",{style:{fontSize:"11px",color:vm.text,opacity:".8",marginTop:"2px"}},"🏢 "+r.team));
+  const nameRow=el("div",{style:{display:"flex",alignItems:"center",gap:"8px",marginBottom:"2px"}});
+  if(r.repName)nameRow.appendChild(el("div",{style:{fontSize:"17px",fontWeight:"800",color:vm.text}},r.repName));
+  if(isClosed)nameRow.appendChild(el("div",{style:{background:"#E1F5EE",color:"#085041",fontSize:"10px",fontWeight:"700",padding:"2px 8px",borderRadius:"20px",border:"1px solid #5DCAA5"}},"✓ Venta Cerrada"));
+  vl.appendChild(nameRow);
+  if(r.team||r._team)vl.appendChild(el("div",{style:{fontSize:"11px",color:vm.text,opacity:".8",marginTop:"2px"}},"🏢 "+(r.team||r._team)));
   vl.appendChild(el("div",{style:{fontSize:"11px",color:vm.text,opacity:".7"}},r.date||""));
   vl.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"600",color:vm.text,marginTop:"3px"}},vm.es+" / "+vm.en));
   vh.appendChild(vl);
@@ -391,6 +480,30 @@ function renderResult(wrap,r){
   vr.appendChild(el("div",{style:{fontSize:"32px",fontWeight:"800",color:vm.text}},sc+"%"));
   vr.appendChild(el("div",{style:{fontSize:"10px",color:vm.text}},"Overall"));
   vh.appendChild(vr);wrap.appendChild(vh);
+
+  // Manager notes if viewing from history
+  if(r._dbid){
+    const notesWrap=el("div",{style:{marginBottom:"14px"}});
+    const notesLabel=el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"📝 Notas del Manager");
+    notesWrap.appendChild(notesLabel);
+    const notesTA=el("textarea",{placeholder:"Agregar notas...",style:{width:"100%",minHeight:"60px",resize:"vertical",borderRadius:"7px",border:"1px solid #e5e7eb",padding:"8px 10px",fontSize:"12px",lineHeight:"1.5",outline:"none",fontFamily:"inherit"}},r._notes||"");
+    notesWrap.appendChild(notesTA);
+    const notesBtns=el("div",{style:{display:"flex",gap:"8px",marginTop:"6px"}});
+    notesBtns.appendChild(el("button",{style:{fontSize:"11px",padding:"5px 12px",background:BRAND,color:"#fff",border:"none",borderRadius:"6px",fontWeight:"600"},onClick:()=>{
+      fetch("/api/update",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:r._dbid,notes:notesTA.value})}).then(()=>{r._notes=notesTA.value;});
+    }},"Guardar nota"));
+    const closedToggle=el("button",{style:{fontSize:"11px",padding:"5px 12px",background:isClosed?"#E1F5EE":"#f3f4f6",color:isClosed?"#085041":"#6b7280",border:"1px solid "+(isClosed?"#5DCAA5":"#e5e7eb"),borderRadius:"6px",fontWeight:"600"},onClick:()=>{
+      const newVal=!isClosed;
+      fetch("/api/update",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:r._dbid,sale_closed:newVal})}).then(()=>{
+        r._sale_closed=newVal;r.sale_closed=newVal;
+        state.histLoading=false;loadHistory();render();
+      });
+    }},isClosed?"✓ Venta Cerrada":"Marcar Venta Cerrada");
+    notesBtns.appendChild(closedToggle);
+    notesWrap.appendChild(notesBtns);
+    wrap.appendChild(notesWrap);
+  }
+
   if(r.summary_es||r.summary_en){
     const sb=el("div",{style:{background:"#f9fafb",borderLeft:"3px solid "+BRAND,padding:"10px 14px",borderRadius:"0 8px 8px 0",marginBottom:"14px",fontSize:"12px",lineHeight:"1.7",color:"#374151"}});
     if((state.lang==="both"||state.lang==="es")&&r.summary_es)sb.appendChild(el("div",null,r.summary_es));
@@ -462,20 +575,34 @@ function renderHistory(app){
   if(!state.hist.length){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px",fontSize:"13px"}},"No hay llamadas aún."));return;}
   state.hist.forEach(h=>{
     const sc=overallPct(h),vm=VM[h.verdict]||VM["needs coaching"];
+    const isClosed=h.sale_closed||h._sale_closed;
     const row=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"10px",padding:"12px 14px",marginBottom:"10px",display:"flex",justifyContent:"space-between",alignItems:"center"}});
-    const left=el("div");
-    left.appendChild(el("div",{style:{fontWeight:"700",fontSize:"13px"}},h.repName||"Unknown"));
+    const left=el("div",{style:{flex:"1"}});
+    const nameRow=el("div",{style:{display:"flex",alignItems:"center",gap:"6px"}});
+    nameRow.appendChild(el("div",{style:{fontWeight:"700",fontSize:"13px"}},h.repName||"Unknown"));
+    if(isClosed)nameRow.appendChild(el("span",{style:{fontSize:"9px",background:"#E1F5EE",color:"#085041",borderRadius:"4px",padding:"1px 5px",fontWeight:"700"}},"✓ Cerrada"));
+    left.appendChild(nameRow);
     const meta=el("div",{style:{fontSize:"11px",color:"#9ca3af",marginTop:"2px"}});
     const teamName=h.team||h._team;
     if(teamName)meta.appendChild(el("span",{style:{background:"#fdf2f8",color:"#9D174D",borderRadius:"4px",padding:"1px 6px",fontSize:"10px",fontWeight:"600",marginRight:"6px"}},teamName));
     meta.appendChild(el("span",null,h.date||""));
-    left.appendChild(meta);row.appendChild(left);
-    const right=el("div",{style:{display:"flex",alignItems:"center",gap:"10px"}});
+    left.appendChild(meta);
+    if(h._notes)left.appendChild(el("div",{style:{fontSize:"11px",color:"#6b7280",marginTop:"3px",fontStyle:"italic"}},"📝 "+h._notes.slice(0,50)+(h._notes.length>50?"…":"")));
+    row.appendChild(left);
+    const right=el("div",{style:{display:"flex",alignItems:"center",gap:"8px"}});
     const vb=el("div",{style:{background:vm.bg,border:"1px solid "+vm.border,borderRadius:"7px",padding:"5px 12px",textAlign:"center"}});
     vb.appendChild(el("div",{style:{fontSize:"17px",fontWeight:"800",color:vm.text}},sc+"%"));
     vb.appendChild(el("div",{style:{fontSize:"9px",color:vm.text}},vm.es));
     right.appendChild(vb);
     right.appendChild(el("button",{style:{fontSize:"11px",color:BRAND,background:"none",border:"1px solid "+BRAND,borderRadius:"6px",padding:"5px 10px",cursor:"pointer",fontWeight:"600"},onClick:()=>{state.viewing=h;state.tab="view";render();}},"Ver →"));
+    right.appendChild(el("button",{style:{fontSize:"11px",color:"#EF4444",background:"none",border:"1px solid #EF4444",borderRadius:"6px",padding:"5px 8px",cursor:"pointer",fontWeight:"600"},onClick:()=>{
+      if(confirm("¿Eliminar esta llamada? Esta acción no se puede deshacer.")){
+        fetch("/api/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:h._dbid})}).then(()=>{
+          state.hist=state.hist.filter(x=>x._dbid!==h._dbid);
+          state.dashLoading=false;loadDashboard();render();
+        });
+      }
+    }},"🗑"));
     row.appendChild(right);app.appendChild(row);
   });
 }
@@ -558,11 +685,13 @@ function renderView(app){
 
 function exportCSV(){
   if(!state.hist.length)return;
-  const headers=["Rep","Equipo","Fecha","Veredicto","Score General","Saludo","Descubrimiento","Presentación","Objeciones","Cierre","Rapport"];
+  const headers=["Rep","Equipo","Fecha","Veredicto","Score General","Venta Cerrada","Saludo","Descubrimiento","Presentación","Objeciones","Cierre","Rapport","Notas Manager"];
   const rows=state.hist.map(h=>[
     h.repName||"",h.team||h._team||"",h.date||"",h.verdict||"",overallPct(h),
+    (h.sale_closed||h._sale_closed)?"Sí":"No",
     calcPct("greeting",h)??"",calcPct("discovery",h)??"",calcPct("presentation",h)??"",
-    calcPct("objections",h)??"",calcPct("closing",h)??"",calcPct("rapport",h)??""
+    calcPct("objections",h)??"",calcPct("closing",h)??"",calcPct("rapport",h)??"",
+    h._notes||""
   ]);
   const csv=[headers,...rows].map(r=>r.map(v=>'"'+(String(v).replace(/"/g,'""'))+'"').join(",")).join("\\n");
   const a=document.createElement("a");
@@ -572,6 +701,7 @@ function exportCSV(){
 
 function downloadReport(r){
   const sc=overallPct(r),vm=VM[r.verdict]||VM["needs coaching"];
+  const isClosed=r.sale_closed||r._sale_closed;
   const rows=CATS.map(c=>{
     const cd=r.categories?.[c.id];if(!cd)return"";
     const items=(cd.scores||[]).map((s,i)=>{
@@ -583,7 +713,7 @@ function downloadReport(r){
     const pct=calcPct(c.id,r);
     return'<tr><td colspan="2" style="background:'+c.bg+';padding:8px 10px;font-weight:700;font-size:12px;color:'+c.tc+';border-top:2px solid '+c.color+'">'+c.label+" / "+c.label_en+(pct!==null?" — "+pct+"%":"")+"</td></tr>"+items;
   }).join("");
-  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QA Report</title></head><body style="font-family:system-ui;max-width:740px;margin:0 auto;padding:30px;color:#111"><div style="display:flex;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #EC4899"><div><div style="font-size:20px;font-weight:800;color:#EC4899">Vamos Health QA</div><div style="font-size:14px;margin-top:4px">'+(r.repName||"")+(r.team?' <span style="font-size:11px;background:#fdf2f8;color:#9D174D;border-radius:4px;padding:2px 7px">'+r.team+"</span>":"")+'</div><div style="font-size:11px;color:#9ca3af">'+(r.date||"")+'</div></div><div style="background:'+vm.bg+';border:1px solid '+vm.border+';border-radius:10px;padding:12px 20px;text-align:center"><div style="font-size:32px;font-weight:800;color:'+vm.text+'">'+sc+'%</div><div style="font-size:11px;color:'+vm.text+'">'+vm.es+" / "+vm.en+'</div></div></div>'+(r.summary_es?'<div style="background:#f5f5f5;border-left:3px solid #EC4899;padding:10px 14px;margin-bottom:20px;font-size:12px;line-height:1.7;color:#374151">'+r.summary_es+(r.summary_en?"<br><br><span style='color:#9ca3af'>"+r.summary_en+"</span>":"")+"</div>":"")+'<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'+rows+"</table>"+(r.coaching_es?'<div style="background:#fdf2f8;border:1px solid #EC4899;border-radius:8px;padding:14px;font-size:12px;color:#9D174D;line-height:1.7"><strong>🎯 Coaching</strong><br><br>'+r.coaching_es+(r.coaching_en?"<br><br><em style='color:#BE185D'>"+r.coaching_en+"</em>":"")+"</div>":"")+'<div style="margin-top:28px;text-align:center;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:12px">Vamos Health QA · '+new Date().toLocaleDateString()+"</div></body></html>";
+  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QA Report</title></head><body style="font-family:system-ui;max-width:740px;margin:0 auto;padding:30px;color:#111"><div style="display:flex;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #EC4899"><div><div style="display:flex;align-items:center;gap:8px"><div style="font-size:20px;font-weight:800;color:#EC4899">Vamos Health QA</div>'+(isClosed?'<span style="font-size:11px;background:#E1F5EE;color:#085041;border-radius:6px;padding:2px 8px;font-weight:700">✓ Venta Cerrada</span>':"")+'</div><div style="font-size:14px;margin-top:4px">'+(r.repName||"")+(r.team?' <span style="font-size:11px;background:#fdf2f8;color:#9D174D;border-radius:4px;padding:2px 7px">'+r.team+"</span>":"")+'</div><div style="font-size:11px;color:#9ca3af">'+(r.date||"")+'</div>'+(r._notes?'<div style="font-size:11px;color:#6b7280;margin-top:4px;font-style:italic">📝 '+r._notes+"</div>":"")+'</div><div style="background:'+vm.bg+';border:1px solid '+vm.border+';border-radius:10px;padding:12px 20px;text-align:center"><div style="font-size:32px;font-weight:800;color:'+vm.text+'">'+sc+'%</div><div style="font-size:11px;color:'+vm.text+'">'+vm.es+" / "+vm.en+'</div></div></div>'+(r.summary_es?'<div style="background:#f5f5f5;border-left:3px solid #EC4899;padding:10px 14px;margin-bottom:20px;font-size:12px;line-height:1.7;color:#374151">'+r.summary_es+(r.summary_en?"<br><br><span style='color:#9ca3af'>"+r.summary_en+"</span>":"")+"</div>":"")+'<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'+rows+"</table>"+(r.coaching_es?'<div style="background:#fdf2f8;border:1px solid #EC4899;border-radius:8px;padding:14px;font-size:12px;color:#9D174D;line-height:1.7"><strong>🎯 Coaching</strong><br><br>'+r.coaching_es+(r.coaching_en?"<br><br><em style='color:#BE185D'>"+r.coaching_en+"</em>":"")+"</div>":"")+'<div style="margin-top:28px;text-align:center;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:12px">Vamos Health QA · '+new Date().toLocaleDateString()+"</div></body></html>";
   const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([html],{type:"text/html"}));
   a.download="VamosQA_"+((r.repName||"Rep").replace(/\\s+/g,"_"))+"_"+(r.date||"report")+".html";a.click();
@@ -605,11 +735,61 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.method === "GET" && url === "/api/dashboard") {
+    getDashboardStats().then(stats => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(stats || {}));
+    });
+    return;
+  }
+
   if (req.method === "GET" && url === "/api/history") {
     const qs = new URLSearchParams(urlParts[1] || "");
     getHistory(qs.get("rep") || "", qs.get("team") || "").then(rows => {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(rows));
+    });
+    return;
+  }
+
+  if (req.method === "POST" && url === "/api/update") {
+    let body = "";
+    req.on("data", c => body += c);
+    req.on("end", () => {
+      try {
+        const { id, notes, sale_closed } = JSON.parse(body);
+        getDbClient().then(client => {
+          if (!client) { res.writeHead(500); res.end("{}"); return; }
+          const updates = [];
+          const params = [];
+          if (notes !== undefined) { params.push(notes); updates.push(`manager_notes = $${params.length}`); }
+          if (sale_closed !== undefined) { params.push(sale_closed); updates.push(`sale_closed = $${params.length}`); }
+          if (!updates.length) { res.writeHead(200); res.end("{}"); return; }
+          params.push(id);
+          client.query(`UPDATE qa_results SET ${updates.join(",")} WHERE id = $${params.length}`, params).then(() => {
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ ok: true }));
+          });
+        });
+      } catch (e) { res.writeHead(400); res.end("{}"); }
+    });
+    return;
+  }
+
+  if (req.method === "POST" && url === "/api/delete") {
+    let body = "";
+    req.on("data", c => body += c);
+    req.on("end", () => {
+      try {
+        const { id } = JSON.parse(body);
+        getDbClient().then(client => {
+          if (!client) { res.writeHead(500); res.end("{}"); return; }
+          client.query("DELETE FROM qa_results WHERE id = $1", [id]).then(() => {
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ ok: true }));
+          });
+        });
+      } catch (e) { res.writeHead(400); res.end("{}"); }
     });
     return;
   }
@@ -635,12 +815,7 @@ const server = http.createServer((req, res) => {
         });
         const options = {
           hostname: "api.anthropic.com", path: "/v1/messages", method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "anthropic-version": "2023-06-01",
-            "x-api-key": apiKey,
-            "Content-Length": Buffer.byteLength(payload)
-          }
+          headers: { "Content-Type": "application/json", "anthropic-version": "2023-06-01", "x-api-key": apiKey, "Content-Length": Buffer.byteLength(payload) }
         };
         const apiReq = https.request(options, apiRes => {
           let data = "";
@@ -648,11 +823,7 @@ const server = http.createServer((req, res) => {
           apiRes.on("end", () => {
             try {
               const parsed = JSON.parse(data);
-              if (parsed.error) {
-                res.writeHead(400, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ error: parsed.error.message }));
-                return;
-              }
+              if (parsed.error) { res.writeHead(400, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: parsed.error.message })); return; }
               const text = (parsed.content || []).map(b => b.text || "").join("").trim();
               const clean = text.replace(/^```json\s*/, "").replace(/\s*```$/, "").trim();
               const result = JSON.parse(clean);
@@ -662,22 +833,12 @@ const server = http.createServer((req, res) => {
               saveResult(result);
               res.writeHead(200, { "Content-Type": "application/json" });
               res.end(JSON.stringify(result));
-            } catch (e) {
-              res.writeHead(500, { "Content-Type": "application/json" });
-              res.end(JSON.stringify({ error: "Failed to parse AI response: " + e.message }));
-            }
+            } catch (e) { res.writeHead(500, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: "Failed to parse AI response: " + e.message })); }
           });
         });
-        apiReq.on("error", e => {
-          res.writeHead(500, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "API request failed: " + e.message }));
-        });
-        apiReq.write(payload);
-        apiReq.end();
-      } catch (e) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Bad request: " + e.message }));
-      }
+        apiReq.on("error", e => { res.writeHead(500, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: "API request failed: " + e.message })); });
+        apiReq.write(payload); apiReq.end();
+      } catch (e) { res.writeHead(400, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: "Bad request: " + e.message })); }
     });
     return;
   }
