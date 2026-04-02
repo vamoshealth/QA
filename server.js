@@ -278,7 +278,7 @@ const VM={
   "critical gaps":{bg:"#fde8e8",text:"#9b1c1c",border:"#dc2626",es:"Brechas Críticas",en:"Critical Gaps"}
 };
 
-let state={tab:"dashboard",tx:"",rep:"",team:"",date:new Date().toISOString().slice(0,10),loading:false,result:null,err:"",hist:[],viewing:null,filterRep:"",filterTeam:"",lang:"both",histLoading:false,dashboard:null,dashLoading:false};
+let state={tab:"dashboard",tx:"",rep:"",team:"",callUrl:"",date:new Date().toISOString().slice(0,10),loading:false,result:null,err:"",hist:[],viewing:null,filterRep:"",filterTeam:"",lang:"both",histLoading:false,dashboard:null,dashLoading:false};
 
 function calcPct(catId,r){
   const s=r?.categories?.[catId]?.scores||[];
@@ -459,6 +459,10 @@ function renderAnalyze(app){
   dw.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Fecha"));
   dw.appendChild(el("input",{type:"date",value:state.date,onInput:e=>state.date=e.target.value}));
   wrap.appendChild(dw);
+  const uw=el("div",{style:{marginBottom:"12px"}});
+  uw.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"URL de la llamada (opcional)"));
+  uw.appendChild(el("input",{type:"url",placeholder:"https://...",value:state.callUrl,onInput:e=>state.callUrl=e.target.value}));
+  wrap.appendChild(uw);
   wrap.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"Transcripción de la llamada"));
   wrap.appendChild(el("textarea",{placeholder:"Pega la transcripción aquí (español o inglés)...",style:{width:"100%",minHeight:"180px",resize:"vertical",borderRadius:"8px",border:"1px solid #e5e7eb",padding:"10px 12px",fontSize:"13px",lineHeight:"1.6",marginBottom:"12px",outline:"none",fontFamily:"inherit"},onInput:e=>state.tx=e.target.value},state.tx));
   wrap.appendChild(el("button",{style:{width:"100%",padding:"11px 0",background:state.loading||!state.tx.trim()?"#e5e7eb":BRAND,color:state.loading||!state.tx.trim()?"#9ca3af":"#fff",border:"none",borderRadius:"8px",fontSize:"14px",fontWeight:"700"},onClick:doAnalyze},state.loading?"⏳ Analizando…":"Analizar Llamada"));
@@ -470,11 +474,13 @@ function renderAnalyze(app){
 function doAnalyze(){
   if(!state.tx.trim()||state.loading)return;
   state.loading=true;state.err="";state.result=null;render();
-  fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({transcript:state.tx,repName:state.rep,team:state.team,date:state.date})})
+  fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({transcript:state.tx,repName:state.rep,team:state.team,date:state.date,callUrl:state.callUrl})})
     .then(r=>r.json().then(d=>({ok:r.ok,d})))
     .then(({ok,d})=>{
       if(!ok)throw new Error(d.error||"Server error");
-      state.result={...d,repName:state.rep||d.repName||"Unknown",team:state.team,date:state.date,_id:Date.now()};
+      state.result={...d,repName:state.rep||d.repName||"Unknown",team:state.team,date:state.date,callUrl:state.callUrl,_id:Date.now()};
+      state.tx="";state.rep="";state.team="";state.callUrl="";
+      state.date=new Date().toISOString().slice(0,10);
     })
     .catch(e=>state.err=e.message)
     .finally(()=>{state.loading=false;render();});
@@ -491,6 +497,10 @@ function renderResult(wrap,r){
   vl.appendChild(nameRow);
   if(r.team||r._team)vl.appendChild(el("div",{style:{fontSize:"11px",color:vm.text,opacity:".8",marginTop:"2px"}},"🏢 "+(r.team||r._team)));
   vl.appendChild(el("div",{style:{fontSize:"11px",color:vm.text,opacity:".7"}},r.date||""));
+  if(r.callUrl){
+    const link=el("a",{href:r.callUrl,target:"_blank",style:{fontSize:"11px",color:vm.text,opacity:".8",display:"inline-block",marginTop:"2px"}},"🔗 Escuchar llamada");
+    vl.appendChild(link);
+  }
   vl.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"600",color:vm.text,marginTop:"3px"}},vm.es+" / "+vm.en));
   vh.appendChild(vl);
   const vr=el("div",{style:{textAlign:"center",background:"rgba(255,255,255,.6)",borderRadius:"10px",padding:"10px 16px"}});
@@ -816,7 +826,7 @@ const server = http.createServer((req, res) => {
     req.on("data", c => body += c);
     req.on("end", () => {
       try {
-        const { transcript, repName, team, date } = JSON.parse(body);
+        const { transcript, repName, team, date, callUrl } = JSON.parse(body);
         const apiKey = process.env.ANTHROPIC_API_KEY;
         if (!apiKey) {
           res.writeHead(500, { "Content-Type": "application/json" });
@@ -847,6 +857,7 @@ const server = http.createServer((req, res) => {
               result.repName = repName || result.repName || "Unknown";
               result.team = team || "";
               result.date = date || "";
+              result.callUrl = callUrl || "";
               saveResult(result);
               res.writeHead(200, { "Content-Type": "application/json" });
               res.end(JSON.stringify(result));
