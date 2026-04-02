@@ -149,6 +149,38 @@ Set "sale_closed": true if ANY of the following appear ANYWHERE in the transcrip
 Set "sale_closed": false ONLY if the call ended with no payment collected.
 IMPORTANT: Card collection and appointment booking often happen near the END of a transcript. Always read to the very end before scoring this field. Do not assume the call ended without a close just because the middle of the transcript lacks closing language.
 
+CANCELLATION RISK ASSESSMENT:
+After analyzing the full call, assign a cancellation risk level: "low", "medium", or "high".
+Base this on the following signals:
+
+HIGH RISK (any 2+ present):
+- Prospect never verbalized their own pain in their own words — they were led to agree rather than express genuine need
+- Price was not anchored against outside costs — prospect may experience sticker shock when charged
+- Objections were overcome but not genuinely resolved — doubt was silenced, not addressed
+- Prospect was passive, gave short answers, did not engage — low emotional investment
+- Close felt rushed or transactional — no real connection between pain and solution
+- No appointment booked or concrete next step established
+- Rep talked more than prospect — prospect never truly bought in
+
+MEDIUM RISK (1 of the above present, or):
+- Pain was identified but not deeply explored — commitment is surface level
+- Value was presented but not personalized enough to this prospect's specific situation
+- Rapport was good but presentation was generic
+- Appointment booked but prospect seemed hesitant or distracted
+
+LOW RISK:
+- Prospect verbalized their own pain clearly and emotionally
+- Price was anchored against real outside costs
+- Rapport was strong and genuine throughout
+- Prospect asked questions and engaged actively
+- Close was natural, not forced
+- Appointment booked with enthusiasm
+
+Also return:
+- "cancellation_reason_es": one sentence in Spanish explaining the primary risk factor
+- "cancellation_reason_en": one sentence in English explaining the primary risk factor
+If sale was not closed, set cancellation_risk to "na" and both reason fields to "".
+
 SCORING: "pass", "fail", or "na" only.
 
 GREETING (4 criteria):
@@ -218,6 +250,9 @@ Verdict: "strong">=80%, "needs coaching" 60-79%, "critical gaps"<60%.
 {
   "repName": "",
   "sale_closed": false,
+  "cancellation_risk": "low",
+  "cancellation_reason_es": "",
+  "cancellation_reason_en": "",
   "summary_es": "2-3 sentences",
   "summary_en": "2-3 sentences",
   "verdict": "needs coaching",
@@ -237,6 +272,13 @@ Verdict: "strong">=80%, "needs coaching" 60-79%, "critical gaps"<60%.
 const TEAMS = ["GDL","West Valley","Arizona 1","Arizona 2","Orem","Team Mana"];
 const LOGO_BADGE = `<div style="background:#EC4899;padding:10px 18px;border-radius:10px;text-align:center;display:inline-block"><div style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1.2">Vamos Health</div><div style="font-size:8px;font-weight:600;color:rgba(255,255,255,.75);letter-spacing:3px;margin-top:1px">MEDICAL GROUP</div></div>`;
 const LOGO_SMALL = `<div style="background:#EC4899;padding:6px 14px;border-radius:8px;text-align:center"><div style="font-size:13px;font-weight:800;color:#fff;letter-spacing:-0.3px;line-height:1.2">Vamos Health</div><div style="font-size:7px;font-weight:600;color:rgba(255,255,255,.75);letter-spacing:2.5px">MEDICAL GROUP</div></div>`;
+
+const RISK_MAP = {
+  low:    { emoji:"🟢", label_es:"Riesgo Bajo",   label_en:"Low Risk",    bg:"#E1F5EE", text:"#085041", border:"#5DCAA5" },
+  medium: { emoji:"🟡", label_es:"Riesgo Medio",  label_en:"Medium Risk", bg:"#FFFBEB", text:"#92400E", border:"#F59E0B" },
+  high:   { emoji:"🔴", label_es:"Riesgo Alto",   label_en:"High Risk",   bg:"#FEE2E2", text:"#991B1B", border:"#EF4444" },
+  na:     { emoji:"—",  label_es:"N/A",            label_en:"N/A",         bg:"#f3f4f6", text:"#6b7280", border:"#e5e7eb" }
+};
 
 function buildHTML(appPassword) {
   return `<!DOCTYPE html>
@@ -275,6 +317,7 @@ const CORRECT_PW=${JSON.stringify(appPassword)};
 const BRAND="#EC4899";
 const TEAMS=${JSON.stringify(TEAMS)};
 const LOGO_HTML=${JSON.stringify(LOGO_SMALL)};
+const RISK_MAP=${JSON.stringify(RISK_MAP)};
 
 document.getElementById("pw").addEventListener("keydown",e=>{if(e.key==="Enter")tryLogin();});
 function tryLogin(){
@@ -512,12 +555,27 @@ function doAnalyze(){
     .finally(()=>{state.loading=false;render();});
 }
 
+function riskBadge(r){
+  const risk=r.cancellation_risk||"na";
+  const rm=RISK_MAP[risk]||RISK_MAP.na;
+  if(risk==="na")return null;
+  const reason=(state.lang==="en"?r.cancellation_reason_en:r.cancellation_reason_es)||"";
+  const wrap=el("div",{style:{background:rm.bg,border:"1px solid "+rm.border,borderRadius:"8px",padding:"5px 10px",display:"inline-flex",flexDirection:"column",alignItems:"center",minWidth:"90px"}});
+  wrap.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"700",color:rm.text,whiteSpace:"nowrap"}},rm.emoji+" "+rm.label_es));
+  wrap.appendChild(el("div",{style:{fontSize:"9px",color:rm.text,opacity:".8",whiteSpace:"nowrap"}},rm.label_en));
+  if(reason)wrap.title=reason;
+  return wrap;
+}
+
 function renderResult(wrap,r){
   const sc=overallPct(r),vm=VM[r.verdict]||VM["needs coaching"];
   const isClosed=r.sale_closed||r._sale_closed;
-  const vh=el("div",{style:{background:vm.bg,border:"1px solid "+vm.border,borderRadius:"12px",padding:"14px 18px",marginBottom:"14px",display:"flex",justifyContent:"space-between",alignItems:"center"}});
-  const vl=el("div");
-  const nameRow=el("div",{style:{display:"flex",alignItems:"center",gap:"8px",marginBottom:"2px"}});
+  const risk=r.cancellation_risk||"na";
+  const rm=RISK_MAP[risk]||RISK_MAP.na;
+
+  const vh=el("div",{style:{background:vm.bg,border:"1px solid "+vm.border,borderRadius:"12px",padding:"14px 18px",marginBottom:"14px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:"10px"}});
+  const vl=el("div",{style:{flex:"1"}});
+  const nameRow=el("div",{style:{display:"flex",alignItems:"center",gap:"8px",marginBottom:"4px",flexWrap:"wrap"}});
   if(r.repName)nameRow.appendChild(el("div",{style:{fontSize:"17px",fontWeight:"800",color:vm.text}},r.repName));
   if(isClosed)nameRow.appendChild(el("div",{style:{background:"#E1F5EE",color:"#085041",fontSize:"10px",fontWeight:"700",padding:"2px 8px",borderRadius:"20px",border:"1px solid #5DCAA5"}},"✓ Venta Cerrada"));
   vl.appendChild(nameRow);
@@ -529,10 +587,32 @@ function renderResult(wrap,r){
   }
   vl.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"600",color:vm.text,marginTop:"3px"}},vm.es+" / "+vm.en));
   vh.appendChild(vl);
-  const vr=el("div",{style:{textAlign:"center",background:"rgba(255,255,255,.6)",borderRadius:"10px",padding:"10px 16px"}});
-  vr.appendChild(el("div",{style:{fontSize:"32px",fontWeight:"800",color:vm.text}},sc+"%"));
-  vr.appendChild(el("div",{style:{fontSize:"10px",color:vm.text}},"Overall"));
-  vh.appendChild(vr);wrap.appendChild(vh);
+
+  // right side: overall score + risk badge stacked
+  const vr=el("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:"6px"}});
+  const scoreBox=el("div",{style:{textAlign:"center",background:"rgba(255,255,255,.6)",borderRadius:"10px",padding:"10px 16px"}});
+  scoreBox.appendChild(el("div",{style:{fontSize:"32px",fontWeight:"800",color:vm.text}},sc+"%"));
+  scoreBox.appendChild(el("div",{style:{fontSize:"10px",color:vm.text}},"Overall"));
+  vr.appendChild(scoreBox);
+  if(risk!=="na"){
+    const rb=el("div",{style:{background:rm.bg,border:"1px solid "+rm.border,borderRadius:"8px",padding:"5px 10px",textAlign:"center",width:"100%"}});
+    rb.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"700",color:rm.text}},rm.emoji+" "+rm.label_es));
+    rb.appendChild(el("div",{style:{fontSize:"9px",color:rm.text,opacity:".85"}},rm.label_en));
+    vr.appendChild(rb);
+  }
+  vh.appendChild(vr);
+  wrap.appendChild(vh);
+
+  // cancellation reason line
+  if(risk!=="na"&&(r.cancellation_reason_es||r.cancellation_reason_en)){
+    const reasonBox=el("div",{style:{background:rm.bg,border:"1px solid "+rm.border,borderRadius:"8px",padding:"8px 12px",marginBottom:"12px",fontSize:"11px",color:rm.text,lineHeight:"1.6"}});
+    if((state.lang==="both"||state.lang==="es")&&r.cancellation_reason_es)
+      reasonBox.appendChild(el("div",null,"⚠ "+r.cancellation_reason_es));
+    if((state.lang==="both"||state.lang==="en")&&r.cancellation_reason_en)
+      reasonBox.appendChild(el("div",{style:{opacity:".8",marginTop:"2px"}},"⚠ "+r.cancellation_reason_en));
+    wrap.appendChild(reasonBox);
+  }
+
   if(r._dbid){
     const notesWrap=el("div",{style:{marginBottom:"14px"}});
     notesWrap.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",marginBottom:"4px"}},"📝 Notas del Manager"));
@@ -625,11 +705,14 @@ function renderHistory(app){
   state.hist.forEach(h=>{
     const sc=overallPct(h),vm=VM[h.verdict]||VM["needs coaching"];
     const isClosed=h.sale_closed||h._sale_closed;
+    const risk=h.cancellation_risk||"na";
+    const rm=RISK_MAP[risk]||RISK_MAP.na;
     const row=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"10px",padding:"12px 14px",marginBottom:"10px",display:"flex",justifyContent:"space-between",alignItems:"center"}});
     const left=el("div",{style:{flex:"1"}});
-    const nameRow=el("div",{style:{display:"flex",alignItems:"center",gap:"6px"}});
+    const nameRow=el("div",{style:{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}});
     nameRow.appendChild(el("div",{style:{fontWeight:"700",fontSize:"13px"}},h.repName||"Unknown"));
     if(isClosed)nameRow.appendChild(el("span",{style:{fontSize:"9px",background:"#E1F5EE",color:"#085041",borderRadius:"4px",padding:"1px 5px",fontWeight:"700"}},"✓ Cerrada"));
+    if(risk!=="na")nameRow.appendChild(el("span",{style:{fontSize:"9px",background:rm.bg,color:rm.text,border:"1px solid "+rm.border,borderRadius:"4px",padding:"1px 6px",fontWeight:"700"}},rm.emoji+" "+rm.label_es));
     left.appendChild(nameRow);
     const meta=el("div",{style:{fontSize:"11px",color:"#9ca3af",marginTop:"2px"}});
     const teamName=h.team||h._team;
@@ -735,10 +818,11 @@ function renderView(app){
 
 function exportCSV(){
   if(!state.hist.length)return;
-  const headers=["Rep","Equipo","Fecha","URL","Veredicto","Score General","Venta Cerrada","Saludo","Descubrimiento","Presentación","Objeciones","Cierre","Rapport","Notas Manager"];
+  const headers=["Rep","Equipo","Fecha","URL","Veredicto","Score General","Venta Cerrada","Riesgo Cancelación","Saludo","Descubrimiento","Presentación","Objeciones","Cierre","Rapport","Notas Manager"];
   const rows=state.hist.map(h=>[
     h.repName||"",h.team||h._team||"",h.date||"",h.callUrl||"",h.verdict||"",overallPct(h),
     (h.sale_closed||h._sale_closed)?"Sí":"No",
+    h.cancellation_risk||"",
     calcPct("greeting",h)??"",calcPct("discovery",h)??"",calcPct("presentation",h)??"",
     calcPct("objections",h)??"",calcPct("closing",h)??"",calcPct("rapport",h)??"",
     h._notes||""
@@ -752,6 +836,8 @@ function exportCSV(){
 function downloadReport(r){
   const sc=overallPct(r),vm=VM[r.verdict]||VM["needs coaching"];
   const isClosed=r.sale_closed||r._sale_closed;
+  const risk=r.cancellation_risk||"na";
+  const rm=RISK_MAP[risk]||RISK_MAP.na;
   const rows=CATS.map(c=>{
     const cd=r.categories?.[c.id];if(!cd)return"";
     const items=(cd.scores||[]).map((s,i)=>{
@@ -763,7 +849,8 @@ function downloadReport(r){
     const pct=calcPct(c.id,r);
     return'<tr><td colspan="2" style="background:'+c.bg+';padding:8px 10px;font-weight:700;font-size:12px;color:'+c.tc+';border-top:2px solid '+c.color+'">'+c.label+" / "+c.label_en+(pct!==null?" — "+pct+"%":"")+"</td></tr>"+items;
   }).join("");
-  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QA Report</title></head><body style="font-family:system-ui;max-width:740px;margin:0 auto;padding:30px;color:#111"><div style="display:flex;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #EC4899"><div><div style="display:flex;align-items:center;gap:8px"><div style="font-size:20px;font-weight:800;color:#EC4899">Vamos Health QA</div>'+(isClosed?'<span style="font-size:11px;background:#E1F5EE;color:#085041;border-radius:6px;padding:2px 8px;font-weight:700">✓ Venta Cerrada</span>':"")+'</div><div style="font-size:14px;margin-top:4px">'+(r.repName||"")+(r.team?' <span style="font-size:11px;background:#fdf2f8;color:#9D174D;border-radius:4px;padding:2px 7px">'+r.team+"</span>":"")+'</div><div style="font-size:11px;color:#9ca3af">'+(r.date||"")+'</div>'+(r.callUrl?'<div style="margin-top:4px"><a href="'+r.callUrl+'" style="font-size:11px;color:#EC4899;">🔗 Escuchar llamada</a></div>':"")+(r._notes?'<div style="font-size:11px;color:#6b7280;margin-top:4px;font-style:italic">📝 '+r._notes+"</div>":"")+'</div><div style="background:'+vm.bg+';border:1px solid '+vm.border+';border-radius:10px;padding:12px 20px;text-align:center"><div style="font-size:32px;font-weight:800;color:'+vm.text+'">'+sc+'%</div><div style="font-size:11px;color:'+vm.text+'">'+vm.es+" / "+vm.en+'</div></div></div>'+(r.summary_es?'<div style="background:#f5f5f5;border-left:3px solid #EC4899;padding:10px 14px;margin-bottom:20px;font-size:12px;line-height:1.7;color:#374151">'+r.summary_es+(r.summary_en?"<br><br><span style='color:#9ca3af'>"+r.summary_en+"</span>":"")+"</div>":"")+'<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'+rows+"</table>"+(r.coaching_es?'<div style="background:#fdf2f8;border:1px solid #EC4899;border-radius:8px;padding:14px;font-size:12px;color:#9D174D;line-height:1.7"><strong>🎯 Coaching</strong><br><br>'+r.coaching_es+(r.coaching_en?"<br><br><em style='color:#BE185D'>"+r.coaching_en+"</em>":"")+"</div>":"")+'<div style="margin-top:28px;text-align:center;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:12px">Vamos Health QA · '+new Date().toLocaleDateString()+"</div></body></html>";
+  const riskHtml=risk!=="na"?'<div style="background:'+rm.bg+';border:1px solid '+rm.border+';border-radius:8px;padding:8px 12px;margin-bottom:16px;font-size:11px;color:'+rm.text+';line-height:1.6">'+rm.emoji+' <strong>'+rm.label_es+' / '+rm.label_en+'</strong>'+(r.cancellation_reason_es?'<br>'+r.cancellation_reason_es:'')+(r.cancellation_reason_en?'<br><span style="opacity:.8">'+r.cancellation_reason_en+'</span>':"")+"</div>":"";
+  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QA Report</title></head><body style="font-family:system-ui;max-width:740px;margin:0 auto;padding:30px;color:#111"><div style="display:flex;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #EC4899"><div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><div style="font-size:20px;font-weight:800;color:#EC4899">Vamos Health QA</div>'+(isClosed?'<span style="font-size:11px;background:#E1F5EE;color:#085041;border-radius:6px;padding:2px 8px;font-weight:700">✓ Venta Cerrada</span>':"")+(risk!=="na"?'<span style="font-size:11px;background:'+rm.bg+';color:'+rm.text+';border:1px solid '+rm.border+';border-radius:6px;padding:2px 8px;font-weight:700">'+rm.emoji+' '+rm.label_es+'</span>':"")+'</div><div style="font-size:14px;margin-top:4px">'+(r.repName||"")+(r.team?' <span style="font-size:11px;background:#fdf2f8;color:#9D174D;border-radius:4px;padding:2px 7px">'+r.team+"</span>":"")+'</div><div style="font-size:11px;color:#9ca3af">'+(r.date||"")+'</div>'+(r.callUrl?'<div style="margin-top:4px"><a href="'+r.callUrl+'" style="font-size:11px;color:#EC4899;">🔗 Escuchar llamada</a></div>':"")+(r._notes?'<div style="font-size:11px;color:#6b7280;margin-top:4px;font-style:italic">📝 '+r._notes+"</div>":"")+'</div><div style="background:'+vm.bg+';border:1px solid '+vm.border+';border-radius:10px;padding:12px 20px;text-align:center"><div style="font-size:32px;font-weight:800;color:'+vm.text+'">'+sc+'%</div><div style="font-size:11px;color:'+vm.text+'">'+vm.es+" / "+vm.en+'</div></div></div>'+riskHtml+(r.summary_es?'<div style="background:#f5f5f5;border-left:3px solid #EC4899;padding:10px 14px;margin-bottom:20px;font-size:12px;line-height:1.7;color:#374151">'+r.summary_es+(r.summary_en?"<br><br><span style='color:#9ca3af'>"+r.summary_en+"</span>":"")+"</div>":"")+'<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'+rows+"</table>"+(r.coaching_es?'<div style="background:#fdf2f8;border:1px solid #EC4899;border-radius:8px;padding:14px;font-size:12px;color:#9D174D;line-height:1.7"><strong>🎯 Coaching</strong><br><br>'+r.coaching_es+(r.coaching_en?"<br><br><em style='color:#BE185D'>"+r.coaching_en+"</em>":"")+"</div>":"")+'<div style="margin-top:28px;text-align:center;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:12px">Vamos Health QA · '+new Date().toLocaleDateString()+"</div></body></html>";
   const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([html],{type:"text/html"}));
   a.download="VamosQA_"+((r.repName||"Rep").replace(/\\s+/g,"_"))+"_"+(r.date||"report")+".html";a.click();
@@ -855,7 +942,6 @@ const server = http.createServer((req, res) => {
           res.end(JSON.stringify({ error: "ANTHROPIC_API_KEY not set" }));
           return;
         }
-        // ── FIXED: was 8000, now 40000 to capture full transcripts ──
         const trimmedTranscript = transcript.slice(0, 40000);
         const payload = JSON.stringify({
           model: "claude-sonnet-4-6",
