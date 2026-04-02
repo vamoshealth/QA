@@ -65,20 +65,30 @@ function getDashboardStats() {
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0,0,0,0);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const today = new Date(); today.setHours(0,0,0,0);
     return Promise.all([
       client.query("SELECT COUNT(*) as total FROM qa_results WHERE created_at >= $1", [startOfWeek]),
+      client.query("SELECT COUNT(*) as total FROM qa_results WHERE created_at >= $1", [startOfMonth]),
       client.query("SELECT COUNT(*) as total FROM qa_results WHERE created_at >= $1", [today]),
-      client.query("SELECT team, AVG(overall_score) as avg_score, COUNT(*) as calls FROM qa_results WHERE team != '' GROUP BY team ORDER BY avg_score DESC"),
+      client.query("SELECT team, AVG(overall_score) as avg_score, COUNT(*) as calls FROM qa_results WHERE team != '' AND created_at >= $1 GROUP BY team ORDER BY avg_score DESC", [startOfWeek]),
+      client.query("SELECT team, AVG(overall_score) as avg_score, COUNT(*) as calls FROM qa_results WHERE team != '' AND created_at >= $1 GROUP BY team ORDER BY avg_score DESC", [startOfMonth]),
       client.query("SELECT rep_name, team, AVG(overall_score) as avg_score, COUNT(*) as calls, SUM(CASE WHEN sale_closed THEN 1 ELSE 0 END) as closed FROM qa_results WHERE created_at >= $1 GROUP BY rep_name, team ORDER BY avg_score DESC", [startOfWeek]),
-      client.query("SELECT COUNT(*) as total, SUM(CASE WHEN sale_closed THEN 1 ELSE 0 END) as closed FROM qa_results WHERE created_at >= $1", [startOfWeek])
-    ]).then(([week, day, teams, reps, closes]) => ({
+      client.query("SELECT rep_name, team, AVG(overall_score) as avg_score, COUNT(*) as calls, SUM(CASE WHEN sale_closed THEN 1 ELSE 0 END) as closed FROM qa_results WHERE created_at >= $1 GROUP BY rep_name, team ORDER BY avg_score DESC", [startOfMonth]),
+      client.query("SELECT COUNT(*) as total, SUM(CASE WHEN sale_closed THEN 1 ELSE 0 END) as closed FROM qa_results WHERE created_at >= $1", [startOfWeek]),
+      client.query("SELECT COUNT(*) as total, SUM(CASE WHEN sale_closed THEN 1 ELSE 0 END) as closed FROM qa_results WHERE created_at >= $1", [startOfMonth])
+    ]).then(([week, month, day, teamsWeek, teamsMonth, repsWeek, repsMonth, closesWeek, closesMonth]) => ({
       callsThisWeek: parseInt(week.rows[0].total),
+      callsThisMonth: parseInt(month.rows[0].total),
       callsToday: parseInt(day.rows[0].total),
-      teamStats: teams.rows,
-      repStats: reps.rows,
-      closesThisWeek: parseInt(closes.rows[0].closed||0),
-      totalThisWeek: parseInt(closes.rows[0].total||0)
+      teamStatsWeek: teamsWeek.rows,
+      teamStatsMonth: teamsMonth.rows,
+      repStatsWeek: repsWeek.rows,
+      repStatsMonth: repsMonth.rows,
+      closesWeek: parseInt(closesWeek.rows[0].closed||0),
+      totalWeek: parseInt(closesWeek.rows[0].total||0),
+      closesMonth: parseInt(closesMonth.rows[0].closed||0),
+      totalMonth: parseInt(closesMonth.rows[0].total||0)
     }));
   }).catch(()=>null);
 }
@@ -240,14 +250,14 @@ function tryLogin(){
 
 const CATS=[
   {id:"greeting",label:"Saludo",label_en:"Greeting",color:"#5DCAA5",bg:"#E1F5EE",tc:"#085041",
-   es:["Se presentó con un nombre y mencionó Vamos Health","Estableció el propósito en los primeros 20 segundos","Preguntó el nombre del prospecto y lo usó naturalmente","Tono cálido, profesional y seguro desde el inicio"],
-   en:["Introduced with a name and mentioned Vamos Health","Established purpose within the first 20 seconds","Asked prospect's name and used it naturally","Warm, professional, confident tone from the start"]},
+   es:["Se presentó con un nombre y mencionó Vamos Health (n/a si es llamada entrante o retomada)","Estableció el propósito en los primeros 20 segundos (n/a si el prospecto ya lo estableció)","Preguntó el nombre del prospecto y lo usó naturalmente","Tono cálido, profesional y seguro desde el inicio"],
+   en:["Introduced with a name and mentioned Vamos Health (n/a if inbound or resumed call)","Established purpose within first 20 seconds (n/a if prospect stated reason first)","Asked prospect's name and used it naturally","Warm, professional, confident tone from the start"]},
   {id:"discovery",label:"Descubrimiento",label_en:"Discovery",color:"#EC4899",bg:"#FDF2F8",tc:"#9D174D",
-   es:["Preguntó sobre cualquier preocupación de salud (cualquier tema de atención primaria)","Preguntó sobre estatus de seguro médico — pivote crítico","Exploró situación familiar — fail si no se exploró","Identificó el dolor INMEDIATO antes de presentar","Escucha activa — parafraseó o confirmó lo escuchado","Preguntas basadas en respuestas del prospecto, no en guión"],
-   en:["Asked about any health concern (any primary care topic)","Asked about insurance status — critical pivot","Explored family situation — fail if not explored","Identified IMMEDIATE pain before presenting","Active listening — paraphrased or confirmed","Follow-up questions based on answers, not a script"]},
+   es:["Preguntó sobre cualquier preocupación de salud (cualquier tema de atención primaria)","Preguntó cómo maneja su salud hoy — ¿clínica, efectivo, seguro, o espera a ir a urgencias?","Exploró situación familiar — fail si no se exploró","Identificó el dolor INMEDIATO antes de presentar","Escucha activa — parafraseó o confirmó lo escuchado","Preguntas basadas en respuestas del prospecto, no en guión"],
+   en:["Asked about any health concern (any primary care topic)","Asked how they currently manage their healthcare — clinic, cash, insurance, or wait for ER?","Explored family situation — fail if not explored","Identified IMMEDIATE pain before presenting","Active listening — paraphrased or confirmed","Follow-up questions based on answers, not a script"]},
   {id:"presentation",label:"Presentación",label_en:"Presentation",color:"#D4537E",bg:"#FBEAF0",tc:"#72243E",
-   es:["Presentó DESPUÉS de descubrir el dolor","Tradujo beneficios a ahorros en dólares concretos","Personalizó la solución a las necesidades específicas","Lenguaje simple y claro — sin jerga","Diálogo activo — no un monólogo"],
-   en:["Presented AFTER discovering pain","Translated benefits into specific dollar savings","Tailored solution to prospect's specific needs","Simple clear language — no jargon","Active dialogue — not a monologue"]},
+   es:["Presentó DESPUÉS de descubrir el dolor","Construyó valor a través de beneficios conectados a los problemas del prospecto","Personalizó la solución a las necesidades específicas","Lenguaje simple y claro — sin jerga","Diálogo activo — no un monólogo"],
+   en:["Presented AFTER discovering pain","Built value through benefits connected to prospect's specific problems","Tailored solution to prospect's specific needs","Simple clear language — no jargon","Active dialogue — not a monologue"]},
   {id:"objections",label:"Objeciones",label_en:"Objections",color:"#D85A30",bg:"#FAECE7",tc:"#712B13",
    es:["Recibió objeciones con calma","Clarificó la objeción antes de responder","Respondió al precio con valor — NO planes de pago","Usó herramientas: valor → urgencia → referido → descuento","Confirmó resolución antes de continuar"],
    en:["Received objections calmly","Clarified objection before responding","Addressed price with value — NOT payment plans","Used tools: value → urgency → referral → discount","Confirmed resolution before moving on"]},
@@ -350,80 +360,87 @@ function renderDashboard(app){
   const d=state.dashboard;
   if(!d){app.appendChild(el("div",{style:{textAlign:"center",color:"#9ca3af",padding:"48px"}},"No hay datos aún."));return;}
 
-  // Top stats
-  const statsGrid=el("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginBottom:"16px"}});
-  const stats=[
-    {label:"Llamadas hoy",value:d.callsToday,color:"#EC4899"},
-    {label:"Esta semana",value:d.callsThisWeek,color:"#7F77DD"},
-    {label:"Ventas cerradas",value:d.closesThisWeek+(d.totalThisWeek>0?" ("+Math.round(d.closesThisWeek/d.totalThisWeek*100)+"%)":""),color:"#085041"}
-  ];
-  stats.forEach(s=>{
-    const card=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"10px",padding:"14px 12px",textAlign:"center"}});
-    card.appendChild(el("div",{style:{fontSize:"22px",fontWeight:"800",color:s.color}},String(s.value)));
-    card.appendChild(el("div",{style:{fontSize:"11px",color:"#9ca3af",marginTop:"4px"}},s.label));
+  // Top stats row
+  const statsGrid=el("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"8px",marginBottom:"20px"}});
+  const weekCloseRate=d.totalWeek>0?Math.round(d.closesWeek/d.totalWeek*100):0;
+  const monthCloseRate=d.totalMonth>0?Math.round(d.closesMonth/d.totalMonth*100):0;
+  [
+    {label:"Hoy",value:d.callsToday,color:"#EC4899"},
+    {label:"Esta semana",value:d.callsThisWeek,color:"#9D174D"},
+    {label:"Este mes",value:d.callsThisMonth,color:"#7F77DD"},
+    {label:"Ventas cerradas",value:weekCloseRate+"% sem / "+monthCloseRate+"% mes",color:"#085041"}
+  ].forEach(s=>{
+    const card=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"10px",padding:"12px 10px",textAlign:"center"}});
+    card.appendChild(el("div",{style:{fontSize:"20px",fontWeight:"800",color:s.color,lineHeight:"1.2"}},String(s.value)));
+    card.appendChild(el("div",{style:{fontSize:"10px",color:"#9ca3af",marginTop:"4px"}},s.label));
     statsGrid.appendChild(card);
   });
   app.appendChild(statsGrid);
 
-  // Team averages
-  if(d.teamStats&&d.teamStats.length){
-    app.appendChild(el("div",{style:{fontWeight:"700",fontSize:"13px",color:"#374151",marginBottom:"8px"}},"Promedio por Equipo"));
-    const teamWrap=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"10px",padding:"12px",marginBottom:"16px"}});
-    d.teamStats.forEach((t,i)=>{
-      const avg=Math.round(parseFloat(t.avg_score));
-      const isLow=avg<60;
-      const row=el("div",{style:{display:"flex",alignItems:"center",gap:"10px",padding:"6px 0",borderBottom:i<d.teamStats.length-1?"1px solid #f3f4f6":"none"}});
-      const nameEl=el("div",{style:{fontSize:"12px",fontWeight:"600",color:"#374151",width:"110px",flexShrink:"0"}},t.team);
-      if(isLow)nameEl.appendChild(el("span",{style:{fontSize:"9px",background:"#FEE2E2",color:"#991B1B",borderRadius:"4px",padding:"1px 5px",marginLeft:"5px"}},"Coaching"));
-      row.appendChild(nameEl);
-      const barWrap=el("div",{style:{flex:"1",height:"8px",background:"#f3f4f6",borderRadius:"4px",overflow:"hidden"}});
-      const bar=el("div",{style:{height:"100%",width:avg+"%",background:avg>=80?"#5DCAA5":avg>=60?"#EC4899":"#EF4444",borderRadius:"4px",transition:"width .3s"}});
-      barWrap.appendChild(bar);row.appendChild(barWrap);
-      row.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"700",color:"#374151",width:"40px",textAlign:"right"}},avg+"%"));
-      row.appendChild(el("div",{style:{fontSize:"10px",color:"#9ca3af",width:"50px",textAlign:"right"}},t.calls+" calls"));
-      teamWrap.appendChild(row);
-    });
-    app.appendChild(teamWrap);
+  // Week vs Month side by side
+  const colGrid=el("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:"16px"}});
+
+  // Helper: render a team stats column
+  function teamCol(title,teamStats,repStats){
+    const col=el("div");
+    const colTitle=el("div",{style:{fontWeight:"700",fontSize:"12px",color:"#9D174D",background:"#FDF2F8",borderRadius:"6px",padding:"4px 10px",marginBottom:"8px",textAlign:"center"}},title);
+    col.appendChild(colTitle);
+    if(teamStats&&teamStats.length){
+      const teamWrap=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"10px",padding:"10px",marginBottom:"10px"}});
+      teamStats.forEach((t,i)=>{
+        const avg=Math.round(parseFloat(t.avg_score));
+        const row=el("div",{style:{display:"flex",alignItems:"center",gap:"8px",padding:"4px 0",borderBottom:i<teamStats.length-1?"1px solid #f3f4f6":"none"}});
+        row.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",width:"90px",flexShrink:"0",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}},t.team));
+        const barWrap=el("div",{style:{flex:"1",height:"6px",background:"#f3f4f6",borderRadius:"3px",overflow:"hidden"}});
+        const bar=el("div",{style:{height:"100%",width:avg+"%",background:avg>=80?"#5DCAA5":avg>=60?"#EC4899":"#EF4444",borderRadius:"3px"}});
+        barWrap.appendChild(bar);row.appendChild(barWrap);
+        row.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"700",color:"#374151",width:"32px",textAlign:"right"}},avg+"%"));
+        teamWrap.appendChild(row);
+      });
+      col.appendChild(teamWrap);
+    }
+    if(repStats&&repStats.length){
+      const repWrap=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"10px",padding:"10px"}});
+      repStats.slice(0,5).forEach((r,i)=>{
+        const avg=Math.round(parseFloat(r.avg_score));
+        const row=el("div",{style:{display:"flex",alignItems:"center",gap:"6px",padding:"5px 0",borderBottom:i<Math.min(repStats.length,5)-1?"1px solid #f3f4f6":"none"}});
+        const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":"";
+        if(medal){const m=document.createElement("span");m.style.fontSize="13px";m.textContent=medal;row.appendChild(m);}
+        else row.appendChild(el("div",{style:{width:"16px",fontSize:"10px",color:"#9ca3af",textAlign:"center"}},"#"+(i+1)));
+        const info=el("div",{style:{flex:"1",minWidth:0}});
+        info.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"600",color:"#374151",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}},r.rep_name));
+        if(r.team)info.appendChild(el("div",{style:{fontSize:"9px",color:"#9D174D"}},r.team));
+        row.appendChild(info);
+        row.appendChild(el("div",{style:{fontSize:"14px",fontWeight:"800",color:avg>=80?"#085041":avg>=60?"#9D174D":"#991B1B",flexShrink:"0"}},avg+"%"));
+        repWrap.appendChild(row);
+      });
+      col.appendChild(repWrap);
+    }
+    return col;
   }
 
-  // Top performers this week
-  if(d.repStats&&d.repStats.length){
-    app.appendChild(el("div",{style:{fontWeight:"700",fontSize:"13px",color:"#374151",marginBottom:"8px"}},"Top Performers Esta Semana"));
-    const repWrap=el("div",{style:{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"10px",padding:"12px",marginBottom:"16px"}});
-    d.repStats.slice(0,5).forEach((r,i)=>{
-      const avg=Math.round(parseFloat(r.avg_score));
-      const closeRate=r.calls>0?Math.round(parseInt(r.closed)/parseInt(r.calls)*100):0;
-      const row=el("div",{style:{display:"flex",alignItems:"center",gap:"10px",padding:"8px 0",borderBottom:i<Math.min(d.repStats.length,5)-1?"1px solid #f3f4f6":"none"}});
-      const rank=el("div",{style:{fontSize:"13px",fontWeight:"800",color:i===0?"#F5A623":i===1?"#9ca3af":i===2?"#CD7F32":"#e5e7eb",width:"20px",textAlign:"center"}},i===0?"🥇":i===1?"🥈":i===2?"🥉":"#"+(i+1));
-      row.appendChild(rank);
-      const info=el("div",{style:{flex:"1"}});
-      info.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"600",color:"#374151"}},r.rep_name));
-      if(r.team)info.appendChild(el("div",{style:{fontSize:"10px",color:"#9D174D"}},r.team));
-      row.appendChild(info);
-      if(closeRate>0){
-        const closeBadge=el("div",{style:{fontSize:"10px",fontWeight:"700",background:"#E1F5EE",color:"#085041",borderRadius:"5px",padding:"2px 6px"}},closeRate+"% closed");
-        row.appendChild(closeBadge);
-      }
-      const scoreEl=el("div",{style:{fontSize:"16px",fontWeight:"800",color:avg>=80?"#085041":avg>=60?"#9D174D":"#991B1B",width:"44px",textAlign:"right"}},avg+"%");
-      row.appendChild(scoreEl);
-      repWrap.appendChild(row);
-    });
-    app.appendChild(repWrap);
+  colGrid.appendChild(teamCol("Esta semana / This week", d.teamStatsWeek, d.repStatsWeek));
+  colGrid.appendChild(teamCol("Este mes / This month", d.teamStatsMonth, d.repStatsMonth));
+  app.appendChild(colGrid);
 
-    // Teams needing coaching
-    const needCoaching=d.teamStats.filter(t=>Math.round(parseFloat(t.avg_score))<70);
-    if(needCoaching.length){
-      app.appendChild(el("div",{style:{fontWeight:"700",fontSize:"13px",color:"#374151",marginBottom:"8px"}},"Equipos que Necesitan Coaching"));
-      const ncWrap=el("div",{style:{background:"#FEE2E2",border:"1px solid #EF4444",borderRadius:"10px",padding:"12px",marginBottom:"16px"}});
-      needCoaching.forEach(t=>{
-        const avg=Math.round(parseFloat(t.avg_score));
-        const row=el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0"}});
-        row.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"600",color:"#991B1B"}},t.team));
-        row.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"800",color:"#991B1B"}},avg+"%"));
-        ncWrap.appendChild(row);
-      });
-      app.appendChild(ncWrap);
-    }
+  // Teams needing coaching (combined, unique)
+  const allTeams=[...(d.teamStatsWeek||[]),...(d.teamStatsMonth||[])];
+  const teamMap={};
+  allTeams.forEach(t=>{
+    if(!teamMap[t.team]||parseFloat(t.avg_score)<parseFloat(teamMap[t.team].avg_score))teamMap[t.team]=t;
+  });
+  const needCoaching=Object.values(teamMap).filter(t=>Math.round(parseFloat(t.avg_score))<70);
+  if(needCoaching.length){
+    app.appendChild(el("div",{style:{fontWeight:"700",fontSize:"13px",color:"#374151",marginBottom:"8px"}},"Equipos que necesitan coaching"));
+    const ncWrap=el("div",{style:{background:"#FEE2E2",border:"1px solid #EF4444",borderRadius:"10px",padding:"12px",marginBottom:"8px"}});
+    needCoaching.forEach(t=>{
+      const avg=Math.round(parseFloat(t.avg_score));
+      const row=el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0"}});
+      row.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"600",color:"#991B1B"}},t.team));
+      row.appendChild(el("div",{style:{fontSize:"12px",fontWeight:"800",color:"#991B1B"}},avg+"%"));
+      ncWrap.appendChild(row);
+    });
+    app.appendChild(ncWrap);
   }
 }
 
