@@ -139,9 +139,15 @@ OBJECTION TOOLS (NO payment plans — never penalize for not offering):
 4. Family discount codes
 5. Enrollment fee waiver — last resort only, not scored
 
-SALE CLOSED DETECTION:
-Set "sale_closed": true ONLY if there is clear evidence: prospect provided card/payment info, confirmation number completed, rep confirmed "quedó registrado/a", or enrollment was explicitly confirmed.
-Set "sale_closed": false if call ended without confirmed payment.
+SALE CLOSED DETECTION — READ THE FULL TRANSCRIPT BEFORE DECIDING:
+Set "sale_closed": true if ANY of the following appear ANYWHERE in the transcript:
+- Prospect reads out a card number, debit/credit card digits, or payment info
+- Rep repeats back card digits to confirm
+- Rep mentions charge will appear in X minutes ("reflejado en unos minutos", "va a estar reflejado")
+- Rep confirms enrollment ("quedó registrado/a", "ya está inscrito/a", "procesamos")
+- A specific appointment is booked AND payment was collected in the same call
+Set "sale_closed": false ONLY if the call ended with no payment collected.
+IMPORTANT: Card collection and appointment booking often happen near the END of a transcript. Always read to the very end before scoring this field. Do not assume the call ended without a close just because the middle of the transcript lacks closing language.
 
 SCORING: "pass", "fail", or "na" only.
 
@@ -849,7 +855,8 @@ const server = http.createServer((req, res) => {
           res.end(JSON.stringify({ error: "ANTHROPIC_API_KEY not set" }));
           return;
         }
-        const trimmedTranscript = transcript.slice(0, 8000);
+        // ── FIXED: was 8000, now 40000 to capture full transcripts ──
+        const trimmedTranscript = transcript.slice(0, 40000);
         const payload = JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 6000,
